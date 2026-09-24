@@ -27,6 +27,7 @@ use VeliraPay\Laravel\Events\InvoiceViewed;
 use VeliraPay\Laravel\Events\InvoiceVoided;
 use VeliraPay\Laravel\Events\WebhookReceived;
 use VeliraPay\Laravel\Http\Controllers\WebhookController;
+use VeliraPay\Laravel\Http\Middleware\VerifyWebhookSignature;
 use VeliraPay\Laravel\Testing\FakeWebhook;
 use VeliraPay\Webhooks\Webhook;
 
@@ -160,6 +161,15 @@ final class WebhookTest extends TestCase
         $this->expectExceptionMessage('Set VELIRAPAY_WEBHOOK_SECRET');
 
         $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET));
+    }
+
+    public function test_the_route_runs_only_the_signature_check(): void
+    {
+        $route = Route::getRoutes()->getByName('velirapay.webhook');
+
+        $this->assertNotNull($route);
+        $this->assertSame(['POST'], $route->methods());
+        $this->assertSame([VerifyWebhookSignature::class], $route->gatherMiddleware());
     }
 
     #[DefineEnvironment('useCustomPath')]
