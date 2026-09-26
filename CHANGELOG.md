@@ -2,7 +2,13 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## 0.1.0 - Unreleased
+## 0.1.1 - 2026-09-26
+
+- `$event->transaction` on `ChargePaymentDetected` and `ChargeLatePayment`: the transfer that was seen on-chain.
+- The customer's details on fake charges, and the transfer on fake `charge.payment_detected` and `charge.late_payment` deliveries.
+- Requires velirapay/velirapay-php 0.1.1 or later.
+
+## 0.1.0 - 2026-09-24
 
 First release.
 

@@ -49,11 +49,18 @@ $charge = VeliraPay::charges()->create([
     'amount' => '49.90',
     'currency' => 'EUR',
     'asset' => 'BTC',
+    'customer' => [
+        'email' => $request->user()->email,
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+    ],
     'metadata' => ['order_id' => (string) $order->id],
 ], idempotencyKey: "order-{$order->id}");
 
 return redirect()->away($charge->checkoutUrl);
 ```
+
+The `customer` details help you spot fraud: the charge is created by your server, so VeliraPay only knows the customer's IP address and browser if you pass them. They come back as `$charge->customer`, along with the reference, phone, country and metadata you may also pass. Charges started on the hosted checkout record the customer's IP address and browser themselves.
 
 ```php
 use VeliraPay\VeliraPayClient;
@@ -106,7 +113,7 @@ Each webhook is dispatched as an event carrying the charge or invoice:
 | `invoice.paid` | `InvoicePaid` | One of the invoice's charges was paid, which settles it. |
 | `invoice.voided` | `InvoiceVoided` | The invoice was withdrawn and can no longer be paid. |
 
-The classes live in `VeliraPay\Laravel\Events`. Charge events have `$event->charge`, invoice events `$event->invoice`, and all of them `$event->webhook`, the delivery itself. `WebhookReceived` is also dispatched for every delivery, including types added to VeliraPay after this package was released.
+The classes live in `VeliraPay\Laravel\Events`. Charge events have `$event->charge`, invoice events `$event->invoice`, and all of them `$event->webhook`, the delivery itself. `ChargePaymentDetected` and `ChargeLatePayment` also have `$event->transaction`, the transfer that was seen: its `txid`, `amount`, `confirmations`, `requiredConfirmations` and `explorerUrl`. `ChargePaymentDetected` arrives before the transfer is confirmed, so tell the customer their payment is on its way, but wait for `ChargePaid` to fulfil. `WebhookReceived` is also dispatched for every delivery, including types added to VeliraPay after this package was released.
 
 A listener in `app/Listeners` is picked up by Laravel automatically:
 
@@ -198,7 +205,7 @@ class CheckoutTest extends TestCase
 }
 ```
 
-The second argument sets attributes on the charge or invoice, the third on the delivery itself, such as `['mode' => 'live']`. With no secret configured, the trait sets one for the test.
+The second argument sets attributes on the charge or invoice, the third on the delivery itself, such as `['mode' => 'live']`. With no secret configured, the trait sets one for the test. The charge is in the state its event leaves it in, with the customer's details filled in; a `charge.payment_detected` or `charge.late_payment` delivery also carries the charge's last transfer as `$event->transaction`.
 
 To test a listener on its own, build a delivery with `FakeWebhook`:
 

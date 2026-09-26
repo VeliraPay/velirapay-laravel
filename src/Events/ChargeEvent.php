@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Laravel\Events;
 
 use VeliraPay\Resources\Charge;
+use VeliraPay\Resources\Transaction;
 use VeliraPay\Webhooks\WebhookEvent;
 
 /**
@@ -12,6 +13,11 @@ use VeliraPay\Webhooks\WebhookEvent;
  */
 abstract class ChargeEvent
 {
+    /**
+     * The transfer the event is about, for ChargePaymentDetected and ChargeLatePayment.
+     */
+    public readonly ?Transaction $transaction;
+
     /**
      * Create a new event.
      */
@@ -21,6 +27,6 @@ abstract class ChargeEvent
         /** The charge, as it was when the event happened. */
         public readonly Charge $charge,
     ) {
-        //
+        $this->transaction = $webhook->transaction;
     }
 }

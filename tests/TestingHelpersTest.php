@@ -36,6 +36,19 @@ final class TestingHelpersTest extends TestCase
         Event::assertDispatched(InvoiceVoided::class, fn (InvoiceVoided $event): bool => $event->invoice->isVoid());
     }
 
+    public function test_a_fake_payment_detected_delivery_carries_an_unconfirmed_transfer(): void
+    {
+        $webhook = FakeWebhook::event('charge.payment_detected');
+
+        $this->assertTrue($webhook->charge?->isPending());
+        $this->assertNotNull($webhook->transaction);
+        $this->assertSame(0, $webhook->transaction->confirmations);
+        $this->assertFalse($webhook->transaction->credited);
+        $this->assertSame($webhook->charge->transactions[0]->txid, $webhook->transaction->txid);
+        $this->assertSame('203.0.113.7', $webhook->charge->customer->ipAddress);
+        $this->assertNull(FakeWebhook::event('charge.paid')->transaction);
+    }
+
     public function test_fake_deliveries_match_their_type(): void
     {
         $charge = FakeWebhook::event('charge.underpaid')->charge;

@@ -30,6 +30,7 @@ use VeliraPay\Laravel\Http\Controllers\WebhookController;
 use VeliraPay\Laravel\Http\Middleware\VerifyWebhookSignature;
 use VeliraPay\Laravel\Testing\FakeWebhook;
 use VeliraPay\Webhooks\Webhook;
+use VeliraPay\Webhooks\WebhookEvent;
 
 final class WebhookTest extends TestCase
 {
@@ -49,6 +50,21 @@ final class WebhookTest extends TestCase
             && $event->charge->metadata === ['order_id' => '42']);
         Event::assertDispatchedTimes(ChargePaid::class, 1);
         Event::assertNotDispatched(ChargeExpired::class);
+    }
+
+    public function test_a_detected_payment_hands_its_transfer_to_listeners(): void
+    {
+        Event::fake();
+        $payload = FakeWebhook::payload('charge.payment_detected');
+        $txid = WebhookEvent::fromArray($payload)->transaction?->txid;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR);
+
+        $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET))->assertOk();
+
+        $this->assertNotNull($txid);
+        Event::assertDispatched(ChargePaymentDetected::class, fn (ChargePaymentDetected $event): bool => $event->charge->isPending()
+            && $event->transaction?->txid === $txid
+            && $event->transaction->confirmations === 0);
     }
 
     /**

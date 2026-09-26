@@ -26,9 +26,16 @@ final class FakeWebhook
         $type = $type instanceof EventType ? $type->value : $type;
         $now = Carbon::now('UTC');
 
-        $data = str_starts_with($type, 'invoice.')
-            ? ['invoice' => array_replace(self::invoice($type, $now), $object)]
-            : ['charge' => array_replace(self::charge($type, $now), $object)];
+        if (str_starts_with($type, 'invoice.')) {
+            $data = ['invoice' => array_replace(self::invoice($type, $now), $object)];
+        } else {
+            $data = ['charge' => $charge = array_replace(self::charge($type, $now), $object)];
+            $transactions = is_array($charge['transactions'] ?? null) ? $charge['transactions'] : [];
+
+            if (in_array($type, ['charge.payment_detected', 'charge.late_payment'], true) && $transactions !== []) {
+                $data['transaction'] = $transactions[array_key_last($transactions)];
+            }
+        }
 
         return array_replace([
             'id' => (string) Str::uuid(),
@@ -72,6 +79,12 @@ final class FakeWebhook
             default => null,
         };
 
+        $transfer = match ($type) {
+            'charge.payment_detected' => self::transaction('0.000400000000000000', 0, false, $now),
+            'charge.late_payment' => self::transaction('0.000400000000000000', 2, false, $now),
+            default => $received === null ? null : self::transaction($received, 2, true, $now),
+        };
+
         return [
             'code' => Str::lower(Str::random(12)),
             'status' => $status,
@@ -89,14 +102,19 @@ final class FakeWebhook
             'refunded_amount' => $type === 'charge.refunded' ? '0.000400000000000000' : '0',
             'exchange_rate' => '62500.000000000000000000',
             'deposit_address' => 'tb1qtest0000000000000000000000000000000000',
-            'transactions' => $received === null ? [] : [[
-                'txid' => bin2hex(random_bytes(32)),
-                'amount' => $received,
-                'confirmations' => 2,
-                'credited' => true,
-            ]],
+            'transactions' => $transfer === null ? [] : [$transfer],
             'customer_email' => 'customer@example.com',
             'customer_name' => null,
+            'customer' => [
+                'email' => 'customer@example.com',
+                'name' => null,
+                'ip_address' => '203.0.113.7',
+                'user_agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',
+                'reference' => null,
+                'phone' => null,
+                'country' => null,
+                'metadata' => [],
+            ],
             'custom_fields' => [],
             'description' => null,
             'metadata' => [],
@@ -105,6 +123,26 @@ final class FakeWebhook
             'created_at' => $now->copy()->subMinutes(5)->toISOString(),
             'expires_at' => $now->copy()->addMinutes(25)->toISOString(),
             'paid_at' => $status === 'paid' ? $now->toISOString() : null,
+        ];
+    }
+
+    /**
+     * Build a transfer into the charge's deposit address.
+     *
+     * @return array<string, mixed>
+     */
+    private static function transaction(string $amount, int $confirmations, bool $credited, Carbon $now): array
+    {
+        $txid = bin2hex(random_bytes(32));
+
+        return [
+            'txid' => $txid,
+            'amount' => $amount,
+            'confirmations' => $confirmations,
+            'required_confirmations' => 2,
+            'credited' => $credited,
+            'explorer_url' => "https://mempool.space/testnet/tx/{$txid}",
+            'seen_at' => $now->copy()->subMinutes(2)->toISOString(),
         ];
     }
 
