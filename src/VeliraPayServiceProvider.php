@@ -27,7 +27,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
     /**
      * The version of this package.
      */
-    public const VERSION = '0.1.1';
+    public const VERSION = '0.2.0';
 
     /**
      * Register the VeliraPay client.
@@ -46,7 +46,6 @@ final class VeliraPayServiceProvider extends ServiceProvider
 
             $timeout = $config->get('velirapay.timeout');
             $maxRetries = $config->get('velirapay.max_retries');
-            $baseUrl = $config->get('velirapay.base_url');
             $factory = new HttpFactory;
 
             return new VeliraPayClient(
@@ -54,7 +53,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
                 httpClient: new LaravelHttpClient($app->make(Factory::class), is_numeric($timeout) ? (float) $timeout : 30.0),
                 requestFactory: $factory,
                 streamFactory: $factory,
-                baseUrl: is_string($baseUrl) && $baseUrl !== '' ? $baseUrl : VeliraPayClient::DEFAULT_BASE_URL,
+                baseUrl: self::baseUrl($config),
                 maxRetries: is_numeric($maxRetries) ? (int) $maxRetries : 2,
                 appInfo: 'VeliraPay-Laravel/'.self::VERSION.' Laravel/'.$app->version(),
             );
@@ -96,6 +95,16 @@ final class VeliraPayServiceProvider extends ServiceProvider
     }
 
     /**
+     * Get the address of the API the client sends requests to.
+     */
+    private static function baseUrl(Repository $config): string
+    {
+        $baseUrl = $config->get('velirapay.base_url');
+
+        return is_string($baseUrl) && $baseUrl !== '' ? $baseUrl : VeliraPayClient::DEFAULT_BASE_URL;
+    }
+
+    /**
      * Describe the configuration for the "about" command.
      *
      * @return array<string, string>
@@ -114,6 +123,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
                 str_starts_with($apiKey, 'vp_test_') => 'Test',
                 default => '<fg=red;options=bold>UNRECOGNISED</>',
             },
+            'Base URL' => self::baseUrl($config),
             'Webhook secret' => VerifyWebhookSignature::secrets($config) === [] ? '<fg=yellow;options=bold>NOT SET</>' : '<fg=green;options=bold>SET</>',
             'Webhook URL' => $path === null ? 'Not registered' : $this->app->make(UrlGenerator::class)->to($path),
         ];

@@ -11,20 +11,11 @@ use Illuminate\Testing\TestResponse;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
+use VeliraPay\Enums\EventType;
 use VeliraPay\Exceptions\InvalidArgumentException;
-use VeliraPay\Laravel\Events\ChargeCanceled;
-use VeliraPay\Laravel\Events\ChargeCreated;
 use VeliraPay\Laravel\Events\ChargeExpired;
-use VeliraPay\Laravel\Events\ChargeLatePayment;
 use VeliraPay\Laravel\Events\ChargePaid;
 use VeliraPay\Laravel\Events\ChargePaymentDetected;
-use VeliraPay\Laravel\Events\ChargeRefunded;
-use VeliraPay\Laravel\Events\ChargeUnderpaid;
-use VeliraPay\Laravel\Events\InvoiceCreated;
-use VeliraPay\Laravel\Events\InvoicePaid;
-use VeliraPay\Laravel\Events\InvoiceSent;
-use VeliraPay\Laravel\Events\InvoiceViewed;
-use VeliraPay\Laravel\Events\InvoiceVoided;
 use VeliraPay\Laravel\Events\WebhookReceived;
 use VeliraPay\Laravel\Http\Controllers\WebhookController;
 use VeliraPay\Laravel\Http\Middleware\VerifyWebhookSignature;
@@ -68,37 +59,24 @@ final class WebhookTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, class-string}>
+     * @return iterable<string, array{EventType}>
      */
     public static function types(): iterable
     {
-        yield 'charge.created' => ['charge.created', ChargeCreated::class];
-        yield 'charge.payment_detected' => ['charge.payment_detected', ChargePaymentDetected::class];
-        yield 'charge.paid' => ['charge.paid', ChargePaid::class];
-        yield 'charge.underpaid' => ['charge.underpaid', ChargeUnderpaid::class];
-        yield 'charge.late_payment' => ['charge.late_payment', ChargeLatePayment::class];
-        yield 'charge.refunded' => ['charge.refunded', ChargeRefunded::class];
-        yield 'charge.expired' => ['charge.expired', ChargeExpired::class];
-        yield 'charge.canceled' => ['charge.canceled', ChargeCanceled::class];
-        yield 'invoice.created' => ['invoice.created', InvoiceCreated::class];
-        yield 'invoice.sent' => ['invoice.sent', InvoiceSent::class];
-        yield 'invoice.viewed' => ['invoice.viewed', InvoiceViewed::class];
-        yield 'invoice.paid' => ['invoice.paid', InvoicePaid::class];
-        yield 'invoice.voided' => ['invoice.voided', InvoiceVoided::class];
+        foreach (EventType::cases() as $type) {
+            yield $type->value => [$type];
+        }
     }
 
-    /**
-     * @param  class-string  $event
-     */
     #[DataProvider('types')]
-    public function test_each_type_has_its_own_event(string $type, string $event): void
+    public function test_every_type_the_sdk_knows_has_its_own_event(EventType $type): void
     {
         Event::fake();
         $body = json_encode(FakeWebhook::payload($type), JSON_THROW_ON_ERROR);
 
         $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET))->assertOk();
 
-        Event::assertDispatched($event);
+        Event::assertDispatched('VeliraPay\\Laravel\\Events\\'.$type->name);
     }
 
     public function test_a_delivery_signed_with_another_secret_is_rejected(): void
@@ -147,11 +125,11 @@ final class WebhookTest extends TestCase
     public function test_a_dashboard_test_delivery_only_fires_webhook_received(): void
     {
         Event::fake();
-        $body = json_encode(FakeWebhook::payload('charge.paid', payload: ['test' => true, 'event_id' => null]), JSON_THROW_ON_ERROR);
+        $body = json_encode(FakeWebhook::payload('charge.paid', payload: ['test' => true]), JSON_THROW_ON_ERROR);
 
         $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET))->assertOk();
 
-        Event::assertDispatched(WebhookReceived::class, fn (WebhookReceived $event): bool => $event->webhook->test);
+        Event::assertDispatched(WebhookReceived::class, fn (WebhookReceived $event): bool => $event->webhook->test && $event->webhook->eventId === null);
         Event::assertNotDispatched(ChargePaid::class);
     }
 

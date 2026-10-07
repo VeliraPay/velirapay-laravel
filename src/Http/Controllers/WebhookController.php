@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use VeliraPay\Enums\EventType;
 use VeliraPay\Laravel\Events\ChargeCanceled;
 use VeliraPay\Laravel\Events\ChargeCreated;
 use VeliraPay\Laravel\Events\ChargeEvent;
@@ -39,14 +40,14 @@ final class WebhookController implements HasMiddleware
      * @var array<string, class-string<ChargeEvent>>
      */
     private const CHARGE_EVENTS = [
-        'charge.created' => ChargeCreated::class,
-        'charge.payment_detected' => ChargePaymentDetected::class,
-        'charge.paid' => ChargePaid::class,
-        'charge.underpaid' => ChargeUnderpaid::class,
-        'charge.late_payment' => ChargeLatePayment::class,
-        'charge.refunded' => ChargeRefunded::class,
-        'charge.expired' => ChargeExpired::class,
-        'charge.canceled' => ChargeCanceled::class,
+        EventType::ChargeCreated->value => ChargeCreated::class,
+        EventType::ChargePaymentDetected->value => ChargePaymentDetected::class,
+        EventType::ChargePaid->value => ChargePaid::class,
+        EventType::ChargeUnderpaid->value => ChargeUnderpaid::class,
+        EventType::ChargeLatePayment->value => ChargeLatePayment::class,
+        EventType::ChargeRefunded->value => ChargeRefunded::class,
+        EventType::ChargeExpired->value => ChargeExpired::class,
+        EventType::ChargeCanceled->value => ChargeCanceled::class,
     ];
 
     /**
@@ -55,11 +56,11 @@ final class WebhookController implements HasMiddleware
      * @var array<string, class-string<InvoiceEvent>>
      */
     private const INVOICE_EVENTS = [
-        'invoice.created' => InvoiceCreated::class,
-        'invoice.sent' => InvoiceSent::class,
-        'invoice.viewed' => InvoiceViewed::class,
-        'invoice.paid' => InvoicePaid::class,
-        'invoice.voided' => InvoiceVoided::class,
+        EventType::InvoiceCreated->value => InvoiceCreated::class,
+        EventType::InvoiceSent->value => InvoiceSent::class,
+        EventType::InvoiceViewed->value => InvoiceViewed::class,
+        EventType::InvoicePaid->value => InvoicePaid::class,
+        EventType::InvoiceVoided->value => InvoiceVoided::class,
     ];
 
     /**
