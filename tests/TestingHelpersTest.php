@@ -69,6 +69,22 @@ final class TestingHelpersTest extends TestCase
         $this->assertSame('paid', $invoice->charges[0]['status']);
     }
 
+    public function test_fake_charges_have_no_coupon_like_real_ones_without_one(): void
+    {
+        $charge = FakeWebhook::event('charge.paid')->charge;
+        $sample = FakeWebhook::event('charge.paid', payload: ['test' => true])->charge;
+
+        $this->assertNotNull($charge);
+        $this->assertNotNull($sample);
+
+        foreach ([$charge, $sample] as $fake) {
+            $this->assertArrayHasKey('coupon', $fake->toArray());
+            $this->assertNull($fake->get('coupon'));
+            $this->assertArrayHasKey('discount_amount', $fake->toArray());
+            $this->assertNull($fake->get('discount_amount'));
+        }
+    }
+
     public function test_a_fake_test_delivery_is_the_dashboard_sample(): void
     {
         $payload = FakeWebhook::payload(EventType::ChargePaid, payload: ['test' => true]);

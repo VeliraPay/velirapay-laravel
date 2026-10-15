@@ -14,6 +14,7 @@ use VeliraPay\VeliraPayClient;
  * @method static \VeliraPay\Services\ChargeService charges()
  * @method static \VeliraPay\Services\PaymentLinkService paymentLinks()
  * @method static \VeliraPay\Services\InvoiceService invoices()
+ * @method static \VeliraPay\Services\CouponService coupons()
  * @method static \VeliraPay\Services\EventService events()
  * @method static \VeliraPay\Enums\Mode|null mode()
  * @method static bool isLiveMode()

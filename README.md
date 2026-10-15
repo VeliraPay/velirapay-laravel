@@ -71,7 +71,7 @@ public function show(VeliraPayClient $velirapay, string $id)
 }
 ```
 
-The client covers charges, payment links, invoices, events and your account. The [VeliraPay PHP library's README](https://github.com/VeliraPay/velirapay-php#charges) documents every method, the errors they throw and how retries work.
+The client covers charges, payment links, invoices, coupons, events and your account. The [VeliraPay PHP library's README](https://github.com/VeliraPay/velirapay-php#charges) documents every method, the errors they throw and how retries work.
 
 Requests go through Laravel's HTTP client, so they appear in Telescope and Pulse, and `Http::fake()` works on them in tests.
 
@@ -156,6 +156,7 @@ Some things to know:
 - **A paid invoice sends two events.** `ChargePaid`, for the charge that paid it (its `$event->charge->invoice` is the invoice's id), and `InvoicePaid`: fulfil on only one of them.
 - **Queue slow work.** VeliraPay waits 15 seconds for an answer. A listener that throws turns the answer into a 500, so VeliraPay tries again later. Implement `ShouldQueue` for anything that takes time.
 - **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid`, whatever types the endpoint subscribes to, with `$event->webhook->test` set and no `eventId`. It dispatches `WebhookReceived` only, so your `ChargePaid` listeners never run on the sample charge.
+- **Coupons lower the price.** A customer who used one of your coupons pays less than the full price: `$event->charge->fiatAmount` is the lower price, `$event->charge->coupon` the code and `$event->charge->discountAmount` what it took off. Account for the discount when you compare the amount with your order.
 - **Amounts are strings.** Coin amounts in webhooks are not trimmed, such as `"0.000400000000000000"` where the API says `"0.0004"`, and fiat amounts read like `"49.90"`. Compare them with `bccomp()`, never as strings or floats.
 - **Simulated payments.** A payment simulated in test mode sends `ChargePaid`, or `ChargeUnderpaid`, without a `ChargePaymentDetected` first, and its transfer's `explorerUrl` is null.
 - **Refunds.** `ChargeRefunded` carries the charge, whose `refundedAmount` is the total refunded so far, but not the refund itself. Read its amount, and its txid and reason when you gave them, from `VeliraPay::events()->retrieve($event->webhook->eventId)->details`.
@@ -164,7 +165,7 @@ Some things to know:
 
 A delivery succeeds when your application accepts the connection within 5 seconds and answers with a 2xx status within 15. Anything else is a failure, including a redirect, which VeliraPay does not follow. A delivery is tried up to 14 times over about three days: again after 1 minute, 5 minutes, 30 minutes, 1 hour, 2, 4 and 8 hours, then every 10 hours.
 
-When a delivery runs out of attempts, the account's owners and admins are emailed, at most once a day per endpoint. After 15 failed deliveries in a row, the endpoint is switched off and they are told. Switching it back on in the dashboard does not send what it missed: read those events with `VeliraPay::events()->list()`.
+When a delivery runs out of attempts, the account's owners and admins are emailed, at most once a day per endpoint. After 15 failed deliveries in a row, the endpoint is switched off and they are told. While it is off, no new events are queued for it and the deliveries still waiting are marked failed. Switching it back on in the dashboard does not send what it missed: resend those deliveries from its delivery log, or read the events with `VeliraPay::events()->list()`.
 
 ### Using your own route
 

@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.3.0 - 2026-10-15
+
+- `VeliraPay::coupons()` for the coupon endpoints.
+- Fake charges carry `coupon` and `discount_amount`, null, like the ones VeliraPay sends.
+- The README covers charges paid with a coupon and what happens to deliveries while an endpoint is switched off.
+- Requires velirapay/velirapay-php 0.3.
+
 ## 0.2.0 - 2026-10-07
 
 - `php artisan about` shows the API's base URL.
