@@ -91,6 +91,8 @@ Copy the endpoint's signing secret to `.env`:
 VELIRAPAY_WEBHOOK_SECRET=whsec_...
 ```
 
+Then press **Verify** on the endpoint's page. VeliraPay sends the endpoint a signed `webhook.verification` challenge, which the route answers for you, and sends it nothing else until it has. Moving the endpoint to another URL asks for this again.
+
 The route sits outside the `web` middleware group, so CSRF protection does not get in the way. Every delivery's signature is checked against the secret; deliveries that fail get a 403 and never reach your code.
 
 Test and live mode have separate endpoints, each with its own secret. To send both to the same application, list both secrets, separated by a comma:
@@ -101,7 +103,7 @@ VELIRAPAY_WEBHOOK_SECRET=whsec_live...,whsec_test...
 
 The application then hears about test payments as well, so check `$event->webhook->isLiveMode()` in your listeners: a test delivery must never fulfil a live order.
 
-Rotating the secret in the dashboard replaces it at once. From then on, deliveries and their retries are signed with the new secret only, and fail the signature check until `VELIRAPAY_WEBHOOK_SECRET` holds it. Replace the old secret there, keeping any other secrets listed, and the failed deliveries go through on their next retry.
+Rotating the secret in the dashboard signs deliveries and their retries with the new secret from then on. For a day they also carry a signature made with the old one, so they keep passing the check while `VELIRAPAY_WEBHOOK_SECRET` still holds it. Replace the old secret there within that day, keeping any other secrets listed.
 
 ### Listening for events
 

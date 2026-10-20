@@ -35,6 +35,11 @@ use VeliraPay\Webhooks\WebhookEvent;
 final class WebhookController implements HasMiddleware
 {
     /**
+     * The event of the challenge an endpoint is sent when it is added or moved, which it must answer before it receives anything else.
+     */
+    private const VERIFICATION_EVENT = 'webhook.verification';
+
+    /**
      * The event dispatched for each type of charge webhook.
      *
      * @var array<string, class-string<ChargeEvent>>
@@ -74,11 +79,19 @@ final class WebhookController implements HasMiddleware
     }
 
     /**
-     * Dispatch a verified delivery as WebhookReceived and, unless it is a dashboard test, as its own event.
+     * Answer the verification challenge VeliraPay sends when the endpoint is added or moved; dispatch any other verified
+     * delivery as WebhookReceived and, unless it is a dashboard test, as its own event.
      */
     public function __invoke(Request $request, Dispatcher $events): Response
     {
         $webhook = WebhookEvent::fromPayload($request->getContent());
+
+        if ($webhook->type === self::VERIFICATION_EVENT) {
+            $data = $webhook->get('data');
+            $challenge = is_array($data) ? ($data['challenge'] ?? null) : null;
+
+            return new Response(json_encode(['challenge' => is_string($challenge) ? $challenge : ''], JSON_THROW_ON_ERROR), 200, ['Content-Type' => 'application/json']);
+        }
 
         $events->dispatch(new WebhookReceived($webhook));
 
