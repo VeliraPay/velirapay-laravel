@@ -6,6 +6,7 @@ All notable changes to this package are documented here. It follows [Semantic Ve
 
 - The webhook route answers the `webhook.verification` challenge VeliraPay now sends an endpoint when it is added or its URL changes, which it must answer before it receives anything else. No event is dispatched for it.
 - The README covers the challenge, HTTPS-only endpoints, and the old secret's signature that deliveries carry for a day after a rotation.
+- `VeliraPayServiceProvider::VERSION`, sent in the User-Agent and shown by `php artisan about`, says 0.3.0; it was left at 0.2.0 by the 0.3.0 release.
 
 ## 0.3.0 - 2026-10-15
 
