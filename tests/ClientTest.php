@@ -37,6 +37,15 @@ final class ClientTest extends TestCase
             && str_contains($request->toPsrRequest()->getHeaderLine('User-Agent'), 'VeliraPay-Laravel/'.VeliraPayServiceProvider::VERSION));
     }
 
+    public function test_the_facade_reaches_the_coins_on_offer_payouts_and_webhook_endpoints(): void
+    {
+        $client = app(VeliraPayClient::class);
+
+        $this->assertSame($client->assets, VeliraPay::assets());
+        $this->assertSame($client->payouts, VeliraPay::payouts());
+        $this->assertSame($client->webhookEndpoints, VeliraPay::webhookEndpoints());
+    }
+
     public function test_request_bodies_and_idempotency_keys_are_sent(): void
     {
         Http::fake([

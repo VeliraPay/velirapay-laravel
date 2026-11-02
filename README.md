@@ -40,7 +40,7 @@ php artisan vendor:publish --tag=velirapay-config
 
 ## Calling the API
 
-Use the facade, or type-hint `VeliraPay\VeliraPayClient` to have it injected:
+Use the facade, or type-hint `VeliraPay\VeliraPayClient` to have it injected. To charge a customer, create a charge with what you already know about them and send them to its checkout page:
 
 ```php
 use VeliraPay\Laravel\Facades\VeliraPay;
@@ -49,15 +49,23 @@ $charge = VeliraPay::charges()->create([
     'amount' => '49.90',
     'currency' => 'EUR',
     'asset' => 'BTC',
+    'description' => "Order #{$order->id}",
     'customer' => [
         'email' => $request->user()->email,
         'ip_address' => $request->ip(),
         'user_agent' => $request->userAgent(),
     ],
     'metadata' => ['order_id' => (string) $order->id],
+    'success_url' => route('orders.show', $order),
 ], idempotencyKey: "order-{$order->id}");
 
 return redirect()->away($charge->checkoutUrl);
+```
+
+Do not create a new payment link for each customer or each order. A payment link is one reusable public page that many customers pay through; an invoice suits a bill to pay later, or a customer who should choose the coin on its page. A charge needs its coin up front, so ask the customer, and offer the coins your account takes, with the lowest price each can be charged at:
+
+```php
+$coins = collect(VeliraPay::assets()->list(['currency' => 'EUR'])->data)->where('accepted', true);
 ```
 
 The `customer` details help you spot fraud: the charge is created by your server, so VeliraPay only knows the customer's IP address and browser if you pass them. They come back as `$charge->customer`, along with the reference, phone, country and metadata you may also pass. Charges started on the hosted checkout record the customer's IP address and browser themselves.
@@ -71,7 +79,7 @@ public function show(VeliraPayClient $velirapay, string $id)
 }
 ```
 
-The client covers charges, payment links, invoices, coupons, events and your account. The [VeliraPay PHP library's README](https://github.com/VeliraPay/velirapay-php#charges) documents every method, the errors they throw and how retries work.
+The client covers the coins on offer, charges, invoices, payment links, coupons, payouts, events, webhook endpoints and your account. The [VeliraPay PHP library's README](https://github.com/VeliraPay/velirapay-php#charges) documents every method, the errors they throw and how retries work.
 
 Requests go through Laravel's HTTP client, so they appear in Telescope and Pulse, and `Http::fake()` works on them in tests.
 

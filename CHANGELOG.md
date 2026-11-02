@@ -2,11 +2,13 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.4.0 - 2026-11-03
 
+- `VeliraPay::assets()`, `VeliraPay::payouts()` and `VeliraPay::webhookEndpoints()` for the coins on offer and their minimums, what became of each paid charge, and whether an endpoint can receive deliveries.
+- The README starts from the recommended way to charge a customer: a charge, with what you already know about them, rather than a payment link per customer.
+- Requires velirapay/velirapay-php 0.4.
 - The webhook route answers the `webhook.verification` challenge VeliraPay now sends an endpoint when it is added or its URL changes, which it must answer before it receives anything else. No event is dispatched for it.
 - The README covers the challenge, HTTPS-only endpoints, and the old secret's signature that deliveries carry for a day after a rotation.
-- `VeliraPayServiceProvider::VERSION`, sent in the User-Agent and shown by `php artisan about`, says 0.3.0; it was left at 0.2.0 by the 0.3.0 release.
 
 ## 0.3.0 - 2026-10-15
 
