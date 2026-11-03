@@ -16,6 +16,7 @@ use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Laravel\Events\ChargeExpired;
 use VeliraPay\Laravel\Events\ChargePaid;
 use VeliraPay\Laravel\Events\ChargePaymentDetected;
+use VeliraPay\Laravel\Events\PayoutConfirmed;
 use VeliraPay\Laravel\Events\WebhookReceived;
 use VeliraPay\Laravel\Http\Controllers\WebhookController;
 use VeliraPay\Laravel\Http\Middleware\VerifyWebhookSignature;
@@ -56,6 +57,22 @@ final class WebhookTest extends TestCase
         Event::assertDispatched(ChargePaymentDetected::class, fn (ChargePaymentDetected $event): bool => $event->charge->isPending()
             && $event->transaction?->txid === $txid
             && $event->transaction->confirmations === 0);
+    }
+
+    public function test_a_payout_hands_its_charge_and_payout_to_listeners(): void
+    {
+        Event::fake();
+        $payload = FakeWebhook::payload('payout.confirmed', ['metadata' => ['order_id' => '42']]);
+        $txid = WebhookEvent::fromArray($payload)->payout?->payoutTxid;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR);
+
+        $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET))->assertOk();
+
+        $this->assertNotNull($txid);
+        Event::assertDispatched(PayoutConfirmed::class, fn (PayoutConfirmed $event): bool => $event->charge->metadata === ['order_id' => '42']
+            && $event->payout->isSent()
+            && $event->payout->payoutTxid === $txid);
+        Event::assertNotDispatched(ChargePaid::class);
     }
 
     /**

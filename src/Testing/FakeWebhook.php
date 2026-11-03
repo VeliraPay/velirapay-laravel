@@ -47,6 +47,10 @@ final class FakeWebhook
             if (in_array($type, ['charge.payment_detected', 'charge.late_payment'], true) && $transactions !== []) {
                 $data['transaction'] = $transactions[array_key_last($transactions)];
             }
+
+            if (str_starts_with($type, 'payout.')) {
+                $data['payout'] = self::payout($type, $charge, $live, $now);
+            }
         }
 
         return array_replace([
@@ -78,7 +82,7 @@ final class FakeWebhook
     private static function charge(string $type, bool $live, Carbon $now): array
     {
         $status = match ($type) {
-            'charge.paid', 'charge.refunded' => 'paid',
+            'charge.paid', 'charge.refunded', 'payout.sent', 'payout.confirmed' => 'paid',
             'charge.underpaid' => 'underpaid',
             'charge.expired', 'charge.late_payment' => 'expired',
             'charge.canceled' => 'canceled',
@@ -194,6 +198,44 @@ final class FakeWebhook
             'credited' => $credited,
             'explorer_url' => ($live ? 'https://mempool.space/tx/' : 'https://mempool.space/testnet/tx/').$txid,
             'seen_at' => $now->copy()->subMinutes(2)->toISOString(),
+        ];
+    }
+
+    /**
+     * Build the payout of a charge, in the state the event leaves it in.
+     *
+     * @param  array<string, mixed>  $charge
+     * @return array<string, mixed>
+     */
+    private static function payout(string $type, array $charge, bool $live, Carbon $now): array
+    {
+        $txid = bin2hex(random_bytes(32));
+        $confirmed = $type === 'payout.confirmed';
+
+        return [
+            'id' => $charge['code'],
+            'object' => 'payout',
+            'charge' => $charge['code'],
+            'status' => $confirmed ? 'sent' : 'sending',
+            'asset' => $charge['asset'],
+            'gross_amount' => '0.0004',
+            'fee_percent' => '3',
+            'fee_amount' => '0.000012',
+            'fee_fiat_amount' => '0.75',
+            'fiat_currency' => $charge['fiat_currency'],
+            'exchange_rate' => '62500',
+            'net_amount' => '0.000388',
+            'network_fee' => '0.0000044',
+            'sent_amount' => '0.000388',
+            'payout_address' => $live ? 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' : 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+            'payout_txid' => $txid,
+            'explorer_url' => ($live ? 'https://mempool.space/tx/' : 'https://mempool.space/testnet/tx/').$txid,
+            'attempts' => 1,
+            'last_error' => null,
+            'next_attempt_at' => null,
+            'sent_at' => $now->copy()->subMinutes($confirmed ? 30 : 0)->toISOString(),
+            'confirmed_at' => $confirmed ? $now->toISOString() : null,
+            'created_at' => $now->copy()->subHour()->toISOString(),
         ];
     }
 

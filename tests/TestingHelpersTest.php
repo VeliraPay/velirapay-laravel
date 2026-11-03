@@ -51,6 +51,20 @@ final class TestingHelpersTest extends TestCase
         $this->assertNull(FakeWebhook::event('charge.paid')->transaction);
     }
 
+    public function test_fake_payout_deliveries_carry_the_charge_and_its_payout(): void
+    {
+        $sent = FakeWebhook::event('payout.sent');
+        $confirmed = FakeWebhook::event('payout.confirmed');
+
+        $this->assertTrue($sent->charge?->isPaid());
+        $this->assertSame($sent->charge->id, $sent->payout?->charge);
+        $this->assertSame('sending', $sent->payout->status);
+        $this->assertNull($sent->payout->confirmedAt);
+        $this->assertTrue($confirmed->payout?->isSent());
+        $this->assertNotNull($confirmed->payout->confirmedAt);
+        $this->assertNull(FakeWebhook::event('charge.paid')->payout);
+    }
+
     public function test_fake_deliveries_match_their_type(): void
     {
         $charge = FakeWebhook::event('charge.underpaid')->charge;

@@ -25,6 +25,9 @@ use VeliraPay\Laravel\Events\InvoicePaid;
 use VeliraPay\Laravel\Events\InvoiceSent;
 use VeliraPay\Laravel\Events\InvoiceViewed;
 use VeliraPay\Laravel\Events\InvoiceVoided;
+use VeliraPay\Laravel\Events\PayoutConfirmed;
+use VeliraPay\Laravel\Events\PayoutEvent;
+use VeliraPay\Laravel\Events\PayoutSent;
 use VeliraPay\Laravel\Events\WebhookReceived;
 use VeliraPay\Laravel\Http\Middleware\VerifyWebhookSignature;
 use VeliraPay\Webhooks\WebhookEvent;
@@ -69,6 +72,16 @@ final class WebhookController implements HasMiddleware
     ];
 
     /**
+     * The event dispatched for each type of payout webhook.
+     *
+     * @var array<string, class-string<PayoutEvent>>
+     */
+    private const PAYOUT_EVENTS = [
+        EventType::PayoutSent->value => PayoutSent::class,
+        EventType::PayoutConfirmed->value => PayoutConfirmed::class,
+    ];
+
+    /**
      * Get the middleware the controller runs behind, wherever its route is registered.
      *
      * @return list<Middleware>
@@ -105,6 +118,9 @@ final class WebhookController implements HasMiddleware
         } elseif ($webhook->invoice !== null && isset(self::INVOICE_EVENTS[$webhook->type])) {
             $event = self::INVOICE_EVENTS[$webhook->type];
             $events->dispatch(new $event($webhook, $webhook->invoice));
+        } elseif ($webhook->charge !== null && $webhook->payout !== null && isset(self::PAYOUT_EVENTS[$webhook->type])) {
+            $event = self::PAYOUT_EVENTS[$webhook->type];
+            $events->dispatch(new $event($webhook, $webhook->charge, $webhook->payout));
         }
 
         return self::handled();
