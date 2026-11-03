@@ -2,7 +2,7 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.5.0 - 2026-11-03
 
 - `PayoutSent` and `PayoutConfirmed` events for the `payout.sent` and `payout.confirmed` webhooks, with `$event->charge` and `$event->payout`. `FakeWebhook` builds both.
 - Requires velirapay/velirapay-php 0.5.
