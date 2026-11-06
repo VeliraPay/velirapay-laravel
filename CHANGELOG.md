@@ -2,7 +2,7 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.1 - 2026-11-06
 
 - API requests no longer follow redirects, keeping writes on the configured endpoint.
 - Fake dashboard test deliveries use `charge.paid`, matching the API.
