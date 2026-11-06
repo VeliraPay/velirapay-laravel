@@ -2,6 +2,11 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.0 - Unreleased
+
+- `VeliraPay::overview()`, `payoutAddresses()`, `activity()`, `apiKeys()`, `members()`, `invitations()` and `billing()`, and the new methods on `VeliraPay::account()` and `VeliraPay::webhookEndpoints()`: changing the account and its payment settings, adding, changing, verifying, testing and deleting webhook endpoints, and managing API keys, members and Pro from your code. Most need a permission ticked on a restricted key.
+- Requires velirapay/velirapay-php 0.6.
+
 ## 0.5.0 - 2026-11-03
 
 - `PayoutSent` and `PayoutConfirmed` events for the `payout.sent` and `payout.confirmed` webhooks, with `$event->charge` and `$event->payout`. `FakeWebhook` builds both.

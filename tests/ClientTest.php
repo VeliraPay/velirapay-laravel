@@ -46,6 +46,19 @@ final class ClientTest extends TestCase
         $this->assertSame($client->webhookEndpoints, VeliraPay::webhookEndpoints());
     }
 
+    public function test_the_facade_reaches_the_account_management_endpoints(): void
+    {
+        $client = app(VeliraPayClient::class);
+
+        $this->assertSame($client->overview, VeliraPay::overview());
+        $this->assertSame($client->payoutAddresses, VeliraPay::payoutAddresses());
+        $this->assertSame($client->activity, VeliraPay::activity());
+        $this->assertSame($client->apiKeys, VeliraPay::apiKeys());
+        $this->assertSame($client->members, VeliraPay::members());
+        $this->assertSame($client->invitations, VeliraPay::invitations());
+        $this->assertSame($client->billing, VeliraPay::billing());
+    }
+
     public function test_request_bodies_and_idempotency_keys_are_sent(): void
     {
         Http::fake([
