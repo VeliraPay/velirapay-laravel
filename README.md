@@ -79,9 +79,11 @@ public function show(VeliraPayClient $velirapay, string $id)
 }
 ```
 
-The client covers the coins on offer, charges, invoices, payment links, coupons, payouts, events, webhook endpoints and your account, and, with the permissions for them ticked on a restricted key, the overview, payout addresses, the activity log, API keys, members, invitations and paying for Pro: `VeliraPay::members()->list()`, `VeliraPay::webhookEndpoints()->create([...])` and so on. The [VeliraPay PHP library's README](https://github.com/VeliraPay/velirapay-php#charges) documents every method, the errors they throw and how retries work.
+The client covers the coins on offer, charges, invoices, payment links, coupons, payouts, events, webhook endpoints, your account, the overview, payout addresses, the activity log, API keys, members, invitations and paying for Pro: `VeliraPay::members()->list()`, `VeliraPay::webhookEndpoints()->create([...])` and so on. Full-access keys can read the overview and payout addresses and start a Pro payment. Reading the activity log, API keys, members and invitations, or changing account settings, payout addresses, webhook endpoints, API keys and members, needs the corresponding sensitive permission explicitly ticked on a restricted key. The [VeliraPay PHP library's README](https://github.com/VeliraPay/velirapay-php#charges) documents every method, the errors they throw and how retries work.
 
 Requests go through Laravel's HTTP client, so they appear in Telescope and Pulse, and `Http::fake()` works on them in tests.
+
+API requests do not follow redirects. If you override `VELIRAPAY_BASE_URL`, use the API's final address.
 
 ## Webhooks
 

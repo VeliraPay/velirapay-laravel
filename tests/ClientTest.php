@@ -6,6 +6,7 @@ namespace VeliraPay\Laravel\Tests;
 
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Psr7\Request as PsrRequest;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -13,6 +14,7 @@ use VeliraPay\Exceptions\ConflictException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Laravel\Facades\VeliraPay;
+use VeliraPay\Laravel\Http\LaravelHttpClient;
 use VeliraPay\Laravel\VeliraPayServiceProvider;
 use VeliraPay\VeliraPayClient;
 
@@ -84,6 +86,22 @@ final class ClientTest extends TestCase
         $this->expectExceptionMessage('Only pending charges can be canceled.');
 
         VeliraPay::charges()->cancel('k3v9x2m7q8wz');
+    }
+
+    public function test_redirects_are_returned_without_forwarding_the_request(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake([
+            'api.velirapay.com/v1/charges' => Http::response('', 302, ['Location' => 'https://api.velirapay.com/v1/moved']),
+            'api.velirapay.com/v1/moved' => Http::response(['data' => ['id' => 'unexpected']], 200),
+        ]);
+        $client = new LaravelHttpClient(app(Factory::class), 30.0);
+
+        $response = $client->sendRequest(new PsrRequest('POST', 'https://api.velirapay.com/v1/charges'));
+
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame('https://api.velirapay.com/v1/moved', $response->getHeaderLine('Location'));
+        Http::assertSentCount(1);
     }
 
     public function test_an_unreachable_api_is_reported_as_a_network_error(): void

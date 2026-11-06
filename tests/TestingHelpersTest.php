@@ -101,11 +101,12 @@ final class TestingHelpersTest extends TestCase
 
     public function test_a_fake_test_delivery_is_the_dashboard_sample(): void
     {
-        $payload = FakeWebhook::payload(EventType::ChargePaid, payload: ['test' => true]);
+        $payload = FakeWebhook::payload(EventType::InvoicePaid, payload: ['test' => true]);
         $webhook = WebhookEvent::fromArray($payload);
 
         $this->assertArrayNotHasKey('event_id', $payload);
         $this->assertTrue($webhook->test);
+        $this->assertSame(EventType::ChargePaid->value, $webhook->type);
         $this->assertNotNull($webhook->charge);
         $this->assertTrue($webhook->charge->isPaid());
         $this->assertSame(['test' => true], $webhook->charge->metadata);

@@ -40,6 +40,7 @@ final class LaravelHttpClient implements ClientInterface
         }
 
         $pending = $this->http->withHeaders($headers)->withOptions([
+            'allow_redirects' => false,
             'timeout' => $this->timeout,
             'connect_timeout' => min(10.0, $this->timeout),
         ]);

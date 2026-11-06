@@ -30,7 +30,7 @@ final class FakeWebhook
         if (($payload['test'] ?? false) === true) {
             return array_replace([
                 'id' => (string) Str::uuid(),
-                'event' => $type,
+                'event' => EventType::ChargePaid->value,
                 'test' => true,
                 'mode' => 'test',
                 'created_at' => $now->toISOString(),
@@ -164,7 +164,7 @@ final class FakeWebhook
             'exchange_rate' => '60000.000000000000000000',
             'deposit_address' => self::depositAddress($live),
             'customer_email' => 'customer@example.com',
-            'description' => 'Test event sent from the VeliraPay dashboard',
+            'description' => 'Test event sent by VeliraPay',
             'metadata' => ['test' => true],
             'payment_link' => null,
             'created_at' => $now->copy()->subMinutes(5)->toISOString(),
