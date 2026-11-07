@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- The README says that the account's business details are only sent to a key with the sensitive `account:write` permission: for any other key, every field of `VeliraPay::account()->retrieve()->business` is `null`. It also lists changing payment settings among what needs a sensitive permission.
+
 ## 0.6.1 - 2026-11-06
 
 - API requests no longer follow redirects, keeping writes on the configured endpoint.
