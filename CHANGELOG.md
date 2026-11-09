@@ -2,8 +2,9 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.2 - 2026-11-09
 
+- Requires `velirapay/velirapay-php` 0.6.5, whose `Asset` enum has USDT and USDC on Polygon and Arbitrum One, and whose docs name the five roles a member can have now that `member` itself is gone.
 - The README says that the account's business details are only sent to a key with the sensitive `account:write` permission: for any other key, every field of `VeliraPay::account()->retrieve()->business` is `null`. It also lists changing payment settings among what needs a sensitive permission.
 
 ## 0.6.1 - 2026-11-06
