@@ -9,6 +9,7 @@ All notable changes to this package are documented here. It follows [Semantic Ve
 - Fake charges carry `network_surcharge` and `payment_request`, null, as every charge VeliraPay delivers does, and their fields come in the same order as VeliraPay's.
 - `FakeWebhook` and `postVeliraPayWebhook()` build the `webhook.verification` challenge VeliraPay sends an endpoint, with a random `challenge` or the one given as `['challenge' => '…']`, so a test can check that a route of your own answers it. They built a pending charge without a challenge.
 - A fake payout delivery takes its payout's attributes under `payout`, such as `['payout' => ['network_fee' => '0.000007']]`. They landed on the charge.
+- `postVeliraPayWebhook()` throws a `LogicException` asking for the URI of your own route when the package's route is turned off and none is given. It posted to `/`.
 - `VELIRAPAY_MAX_RETRY_AFTER` (`velirapay.max_retry_after`), the longest `Retry-After` the client waits out before trying again, 10 seconds by default. A longer one is thrown at once, as before. A published config file needs the line added to change it.
 
 ## 0.6.2 - 2026-11-09

@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace VeliraPay\Laravel\Tests;
 
 use DateTimeImmutable;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
+use LogicException;
+use Orchestra\Testbench\Attributes\DefineEnvironment;
 use VeliraPay\Enums\EventType;
 use VeliraPay\Laravel\Events\ChargePaid;
 use VeliraPay\Laravel\Events\InvoiceVoided;
 use VeliraPay\Laravel\Events\WebhookReceived;
+use VeliraPay\Laravel\Http\Controllers\WebhookController;
 use VeliraPay\Laravel\Testing\FakeWebhook;
 use VeliraPay\Laravel\Testing\SendsVeliraPayWebhooks;
 use VeliraPay\Webhooks\Webhook;
@@ -38,6 +43,26 @@ final class TestingHelpersTest extends TestCase
         $this->postVeliraPayWebhook('invoice.voided')->assertOk();
 
         Event::assertDispatched(InvoiceVoided::class, fn (InvoiceVoided $event): bool => $event->invoice->isVoid());
+    }
+
+    #[DefineEnvironment('turnRouteOff')]
+    public function test_a_webhook_can_be_sent_to_a_route_of_your_own(): void
+    {
+        Event::fake();
+        Route::post('payments/velirapay', WebhookController::class);
+
+        $this->postVeliraPayWebhook('charge.paid', uri: '/payments/velirapay')->assertOk();
+
+        Event::assertDispatched(ChargePaid::class);
+    }
+
+    #[DefineEnvironment('turnRouteOff')]
+    public function test_a_webhook_needs_a_uri_while_the_route_is_turned_off(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('pass the URI of your own route to postVeliraPayWebhook()');
+
+        $this->postVeliraPayWebhook('charge.paid');
     }
 
     public function test_a_fake_payment_detected_delivery_carries_an_unconfirmed_transfer(): void
@@ -204,5 +229,15 @@ final class TestingHelpersTest extends TestCase
         $this->assertNotNull($webhook->transaction);
         $this->assertSame(0, $webhook->transaction->confirmations);
         $this->assertFalse($webhook->transaction->credited);
+    }
+
+    /**
+     * Leave the webhook route to the application.
+     *
+     * @param  Application  $app
+     */
+    protected function turnRouteOff($app): void
+    {
+        $app['config']->set('velirapay.webhook.path', null);
     }
 }
