@@ -268,7 +268,7 @@ $payment->checkoutUrl; // where to pay a month of Pro
 
 Full-access keys can read the overview and payout addresses and start a Pro payment. Reading the activity log, API keys, members and invitations, or changing account or payment settings, payout addresses, webhook endpoints, API keys and members, needs the corresponding sensitive permission explicitly ticked on a restricted key. So does reading the account's business details: for a key without `account:write`, every field of `VeliraPay::account()->retrieve()->business` is `null`. A key can make or change no key that reaches further than itself, only a key an owner made changes a role or removes a member, and owners are never changed this way.
 
-A new API key is shown once and never kept for a retry. When the answer to `apiKeys()->create()` is lost, the retry throws a `ConflictException` whose `wasReplayed()` is `true`: the key was made, but nobody can read it. Find it with `apiKeys()->list()`, revoke it with `apiKeys()->revoke()`, and create another.
+A new API key is shown once and never kept for a retry. When the answer to `apiKeys()->create()` is lost, the retry throws a `ConflictException` whose `wasReplayed()` is `true`: the key was made, but nobody can read it. Find it with `apiKeys()->list()`, revoke it with `apiKeys()->revoke()`, and create another. Two keys may share a name, so give the key a name no other key has, such as one with a random suffix, or the search may revoke a key you still use.
 
 ### Overview and activity
 
