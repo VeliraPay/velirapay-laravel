@@ -15,6 +15,7 @@ use RuntimeException;
 use VeliraPay\Exceptions\ConflictException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Exceptions\InvalidArgumentException;
+use VeliraPay\Exceptions\RateLimitException;
 use VeliraPay\Laravel\Facades\VeliraPay;
 use VeliraPay\Laravel\Http\LaravelHttpClient;
 use VeliraPay\Laravel\VeliraPayServiceProvider;
@@ -195,6 +196,39 @@ final class ClientTest extends TestCase
         config(['velirapay.max_retries' => 0]);
 
         $this->assertFalse($this->writesAreRetried());
+    }
+
+    public function test_the_longest_retry_after_to_wait_out_comes_from_the_config(): void
+    {
+        config(['velirapay.max_retry_after' => 0]);
+        Http::fake(['*' => Http::response(['message' => 'Too many requests.'], 429, ['Retry-After' => '1'])]);
+
+        try {
+            VeliraPay::charges()->list();
+            $this->fail('The rate limit was waited out.');
+        } catch (RateLimitException $exception) {
+            $this->assertSame(1, $exception->retryAfter());
+        }
+
+        Http::assertSentCount(1);
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function unusableRetryAfters(): iterable
+    {
+        yield 'blank' => [''];
+        yield 'negative' => [-1];
+        yield 'not a number' => ['ten'];
+    }
+
+    #[DataProvider('unusableRetryAfters')]
+    public function test_an_unusable_longest_retry_after_falls_back_to_the_default(mixed $seconds): void
+    {
+        config(['velirapay.max_retry_after' => $seconds]);
+
+        $this->assertSame(app(VeliraPayClient::class)->charges, VeliraPay::charges());
     }
 
     /**

@@ -46,6 +46,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
 
             $timeout = $config->get('velirapay.timeout');
             $maxRetries = $config->get('velirapay.max_retries');
+            $maxRetryAfter = $config->get('velirapay.max_retry_after');
             $factory = new HttpFactory;
 
             return new VeliraPayClient(
@@ -56,6 +57,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
                 baseUrl: self::baseUrl($config),
                 maxRetries: is_numeric($maxRetries) && $maxRetries >= 0 ? (int) $maxRetries : 2,
                 appInfo: 'VeliraPay-Laravel/'.self::VERSION.' Laravel/'.$app->version(),
+                maxRetryAfter: is_numeric($maxRetryAfter) && $maxRetryAfter >= 0 ? (int) $maxRetryAfter : 10,
             );
         });
 

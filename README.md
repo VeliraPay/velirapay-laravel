@@ -271,6 +271,7 @@ $webhook = FakeWebhook::event('charge.paid', ['metadata' => ['order_id' => '42']
 | `VELIRAPAY_WEBHOOK_TOLERANCE` | `300` | How many seconds old a signature may be. Only an explicit `0` turns the check off; a blank value keeps the default. |
 | `VELIRAPAY_TIMEOUT` | `30` | How many seconds an API request may take. A blank value, `0` or less keeps the default. |
 | `VELIRAPAY_MAX_RETRIES` | `2` | How many times a failed API request is tried again; `0` turns retries off, and a blank value keeps the default. |
+| `VELIRAPAY_MAX_RETRY_AFTER` | `10` | The longest `Retry-After`, in seconds, that is waited out before trying again. A longer one is thrown at once, and the exception's `retryAfter()` says how long to wait. |
 | `VELIRAPAY_BASE_URL` | `https://api.velirapay.com` | The address of the VeliraPay API. |
 
 `php artisan about` shows whether the key and secret are set, the key's mode, the base URL and the webhook URL.

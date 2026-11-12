@@ -38,15 +38,18 @@ return [
     | Requests
     |--------------------------------------------------------------------------
     |
-    | How many seconds a request may take, and how many times it is tried
-    | again after a network error, a rate limit or an outage. A blank value
-    | keeps the default.
+    | How many seconds a request may take, how many times it is tried again
+    | after a network error, a rate limit or an outage, and the longest
+    | Retry-After, in seconds, that is waited out before trying again. A
+    | blank value keeps the default.
     |
     */
 
     'timeout' => env('VELIRAPAY_TIMEOUT', 30),
 
     'max_retries' => env('VELIRAPAY_MAX_RETRIES', 2),
+
+    'max_retry_after' => env('VELIRAPAY_MAX_RETRY_AFTER', 10),
 
     'base_url' => env('VELIRAPAY_BASE_URL', 'https://api.velirapay.com'),
 
