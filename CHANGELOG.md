@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.4 - 2026-11-12
+
+- Requires `velirapay/velirapay-php` 0.6.8, so `invoices()->create()` takes `success_url` and `cancel_url`, which the invoice's page and its charges' checkout offer the customer as a way back to your site, and `$invoice->successUrl` and `$invoice->cancelUrl` read them back. The README's invoice example passes both.
+
 ## 0.6.3 - 2026-11-12
 
 - Requires `velirapay/velirapay-php` 0.6.7, and with it `$charge->networkSurcharge`, `paymentRequest`, `paymentLinkTitle` and `invoiceNumber`, the Lightning, Base, Arbitrum One and Polygon coins, the overview's figures, the meta of list answers, an enum for every set of values the API uses, dates sent in UTC and float amounts as plain decimals, retries of answers cut off after they began and of Cloudflare's 520 to 524, and `ConflictException::wasReplayed()` for a write whose answer carried a new API key or signing secret.

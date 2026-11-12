@@ -150,6 +150,8 @@ $invoice = VeliraPay::invoices()->create([
         ['description' => 'Consulting', 'quantity' => '10', 'unit_amount' => '100.00'],
     ],
     'due_at' => now()->addDays(14),
+    'success_url' => 'https://example.com/orders/1042', // offered once they have paid
+    'cancel_url' => 'https://example.com/checkout', // offered while it is open
     'send_email' => true,
 ]);
 
