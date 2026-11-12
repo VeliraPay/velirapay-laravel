@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- The webhook route answers the `webhook.verification` challenge with the PHP library's `challengeResponse()`, and a challenge that carries no value with a 400 rather than an empty answer.
+
 ## 0.6.2 - 2026-11-09
 
 - Requires `velirapay/velirapay-php` 0.6.5, whose `Asset` enum has USDT and USDC on Polygon and Arbitrum One, and whose docs name the five roles a member can have now that `member` itself is gone.

@@ -162,6 +162,18 @@ final class WebhookTest extends TestCase
         Event::assertNotDispatched(WebhookReceived::class);
     }
 
+    public function test_a_verification_without_a_challenge_is_refused(): void
+    {
+        Event::fake();
+        $body = '{"id":"0199f0c2-2b7a-7c0e-9d3a-5e8f1a2b3c4d","event":"webhook.verification","mode":"live","created_at":"2026-10-19T22:00:00.000000Z","data":{}}';
+
+        $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET))
+            ->assertStatus(400)
+            ->assertSee('Invalid challenge.');
+
+        Event::assertNotDispatched(WebhookReceived::class);
+    }
+
     public function test_an_unsigned_verification_challenge_is_rejected(): void
     {
         $body = '{"id":"0199f0c2-2b7a-7c0e-9d3a-5e8f1a2b3c4d","event":"webhook.verification","mode":"live","data":{"challenge":"c4Lr9xT2mQ7vZ1"}}';
