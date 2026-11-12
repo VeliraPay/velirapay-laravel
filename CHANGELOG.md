@@ -4,6 +4,7 @@ All notable changes to this package are documented here. It follows [Semantic Ve
 
 ## Unreleased
 
+- Requires `guzzlehttp/psr7` 2 or 3, whose `HttpFactory` the client is built with. Laravel 12 allows psr7 1.9, which has none, and there the client could not be created.
 - The webhook route answers the `webhook.verification` challenge with the PHP library's `challengeResponse()`, and a challenge that carries no value with a 400 rather than an empty answer.
 - A blank `VELIRAPAY_WEBHOOK_TOLERANCE`, `VELIRAPAY_TIMEOUT` or `VELIRAPAY_MAX_RETRIES` keeps its default. The config file cast them, so a blank one read as 0, which accepted a webhook signature of any age, sent API requests with no time limit, or turned retries off. Only an explicit `0` turns the age check or retries off, and a timeout of 0 or less, or one that is not a number, is 30 seconds. A negative retry count, or one that is not a number, is 2, where it threw an `InvalidArgumentException`. **If you published `config/velirapay.php`, remove the `(int)` and `(float)` casts from it**: a published file keeps them, so a blank tolerance or retry count still reads as 0 there, while the timeout is now safe either way.
 - Fake charges carry `network_surcharge` and `payment_request`, null, as every charge VeliraPay delivers does, and their fields come in the same order as VeliraPay's.
