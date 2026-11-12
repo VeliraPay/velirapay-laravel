@@ -27,7 +27,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
     /**
      * The version of this package.
      */
-    public const VERSION = '0.6.2';
+    public const VERSION = '0.6.3';
 
     /**
      * Register the VeliraPay client.
