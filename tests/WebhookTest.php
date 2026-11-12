@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
+use Orchestra\Testbench\Attributes\WithEnv;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 use VeliraPay\Enums\EventType;
@@ -137,6 +138,14 @@ final class WebhookTest extends TestCase
         config(['velirapay.webhook.tolerance' => 900]);
 
         $this->deliver($body, $header)->assertOk();
+    }
+
+    #[WithEnv('VELIRAPAY_WEBHOOK_TOLERANCE', '')]
+    public function test_a_blank_signature_age_limit_keeps_the_default(): void
+    {
+        $body = json_encode(FakeWebhook::payload('charge.paid'), JSON_THROW_ON_ERROR);
+
+        $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET, time() - 600))->assertForbidden();
     }
 
     public function test_a_dashboard_test_delivery_only_fires_webhook_received(): void

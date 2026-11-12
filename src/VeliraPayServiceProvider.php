@@ -50,11 +50,11 @@ final class VeliraPayServiceProvider extends ServiceProvider
 
             return new VeliraPayClient(
                 apiKey: $apiKey,
-                httpClient: new LaravelHttpClient($app->make(Factory::class), is_numeric($timeout) ? (float) $timeout : 30.0),
+                httpClient: new LaravelHttpClient($app->make(Factory::class), is_numeric($timeout) && $timeout > 0 ? (float) $timeout : 30.0),
                 requestFactory: $factory,
                 streamFactory: $factory,
                 baseUrl: self::baseUrl($config),
-                maxRetries: is_numeric($maxRetries) ? (int) $maxRetries : 2,
+                maxRetries: is_numeric($maxRetries) && $maxRetries >= 0 ? (int) $maxRetries : 2,
                 appInfo: 'VeliraPay-Laravel/'.self::VERSION.' Laravel/'.$app->version(),
             );
         });

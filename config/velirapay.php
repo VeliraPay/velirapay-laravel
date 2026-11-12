@@ -21,14 +21,16 @@ return [
     |
     | The signing secret of your endpoint, under Developers > Webhooks, with
     | several separated by commas, and the path VeliraPay posts to. A null
-    | path leaves the route for you to register.
+    | path leaves the route for you to register. The tolerance is how many
+    | seconds old a signature may be: 0 turns that check off, and a blank
+    | value keeps the default.
     |
     */
 
     'webhook' => [
         'secret' => env('VELIRAPAY_WEBHOOK_SECRET'),
         'path' => env('VELIRAPAY_WEBHOOK_PATH', 'velirapay/webhook'),
-        'tolerance' => (int) env('VELIRAPAY_WEBHOOK_TOLERANCE', 300),
+        'tolerance' => env('VELIRAPAY_WEBHOOK_TOLERANCE', 300),
     ],
 
     /*
@@ -37,13 +39,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | How many seconds a request may take, and how many times it is tried
-    | again after a network error, a rate limit or an outage.
+    | again after a network error, a rate limit or an outage. A blank value
+    | keeps the default.
     |
     */
 
-    'timeout' => (float) env('VELIRAPAY_TIMEOUT', 30),
+    'timeout' => env('VELIRAPAY_TIMEOUT', 30),
 
-    'max_retries' => (int) env('VELIRAPAY_MAX_RETRIES', 2),
+    'max_retries' => env('VELIRAPAY_MAX_RETRIES', 2),
 
     'base_url' => env('VELIRAPAY_BASE_URL', 'https://api.velirapay.com'),
 

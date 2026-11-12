@@ -5,6 +5,7 @@ All notable changes to this package are documented here. It follows [Semantic Ve
 ## Unreleased
 
 - The webhook route answers the `webhook.verification` challenge with the PHP library's `challengeResponse()`, and a challenge that carries no value with a 400 rather than an empty answer.
+- A blank `VELIRAPAY_WEBHOOK_TOLERANCE`, `VELIRAPAY_TIMEOUT` or `VELIRAPAY_MAX_RETRIES` keeps its default. The config file cast them, so a blank one read as 0, which accepted a webhook signature of any age, sent API requests with no time limit, or turned retries off. Only an explicit `0` turns the age check or retries off, and a timeout of 0 or less, or one that is not a number, is 30 seconds. A negative retry count, or one that is not a number, is 2, where it threw an `InvalidArgumentException`. **If you published `config/velirapay.php`, remove the `(int)` and `(float)` casts from it**: a published file keeps them, so a blank tolerance or retry count still reads as 0 there, while the timeout is now safe either way.
 
 ## 0.6.2 - 2026-11-09
 

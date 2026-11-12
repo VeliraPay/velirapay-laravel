@@ -9,6 +9,8 @@ use GuzzleHttp\Psr7\Request as PsrRequest;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Orchestra\Testbench\Attributes\WithEnv;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use VeliraPay\Exceptions\ConflictException;
 use VeliraPay\Exceptions\ConnectionException;
@@ -132,5 +134,100 @@ final class ClientTest extends TestCase
         $this->expectExceptionMessage('Set VELIRAPAY_API_KEY in your .env file');
 
         VeliraPay::account();
+    }
+
+    public function test_the_timeout_comes_from_the_config(): void
+    {
+        config(['velirapay.timeout' => '5']);
+
+        $this->assertSame([5.0, 5.0], $this->timeoutsSent());
+    }
+
+    #[WithEnv('VELIRAPAY_TIMEOUT', '')]
+    public function test_a_blank_timeout_keeps_the_default(): void
+    {
+        $this->assertSame([30.0, 10.0], $this->timeoutsSent());
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function unusableTimeouts(): iterable
+    {
+        yield 'zero' => [0];
+        yield 'negative' => [-5];
+        yield 'not a number' => ['thirty'];
+    }
+
+    #[DataProvider('unusableTimeouts')]
+    public function test_an_unusable_timeout_falls_back_to_the_default(mixed $timeout): void
+    {
+        config(['velirapay.timeout' => $timeout]);
+
+        $this->assertSame([30.0, 10.0], $this->timeoutsSent());
+    }
+
+    #[WithEnv('VELIRAPAY_MAX_RETRIES', '')]
+    public function test_a_blank_retry_count_keeps_retries_on(): void
+    {
+        $this->assertTrue($this->writesAreRetried());
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function unusableRetryCounts(): iterable
+    {
+        yield 'negative' => [-1];
+        yield 'not a number' => ['two'];
+    }
+
+    #[DataProvider('unusableRetryCounts')]
+    public function test_an_unusable_retry_count_falls_back_to_the_default(mixed $retries): void
+    {
+        config(['velirapay.max_retries' => $retries]);
+
+        $this->assertTrue($this->writesAreRetried());
+    }
+
+    public function test_retries_can_be_turned_off(): void
+    {
+        config(['velirapay.max_retries' => 0]);
+
+        $this->assertFalse($this->writesAreRetried());
+    }
+
+    /**
+     * Send a request through the client, and get the timeout and connect timeout it went with.
+     *
+     * @return array{mixed, mixed}
+     */
+    private function timeoutsSent(): array
+    {
+        $sent = [null, null];
+
+        Http::fake(function (Request $request, array $options) use (&$sent) {
+            $sent = [$options['timeout'] ?? null, $options['connect_timeout'] ?? null];
+
+            return Http::response(['data' => ['id' => 'acme', 'name' => 'Acme']]);
+        });
+
+        VeliraPay::account()->retrieve();
+
+        return $sent;
+    }
+
+    /**
+     * Determine whether the client retries writes, which then carry an idempotency key of the library's own.
+     */
+    private function writesAreRetried(): bool
+    {
+        Http::fake(['api.velirapay.com/v1/charges/k3v9x2m7q8wz/cancel' => Http::response([
+            'data' => ['id' => 'k3v9x2m7q8wz', 'status' => 'canceled'],
+        ])]);
+
+        VeliraPay::charges()->cancel('k3v9x2m7q8wz');
+
+        return Http::recorded(fn (Request $request): bool => $request->hasHeader('Idempotency-Key'))->isNotEmpty();
     }
 }
