@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- Fake charges' customers carry `ip_country`, `ip_asn` and `ip_network`, null, after `ip_address`, as the customers VeliraPay delivers now do. The README says what `$charge->customer->ipCountry`, `ipAsn` and `ipNetwork` are for, and that a `customer` passed to `FakeWebhook` or `postVeliraPayWebhook()` replaces the fake one whole.
+
 ## 0.6.4 - 2026-11-12
 
 - Requires `velirapay/velirapay-php` 0.6.8, so `invoices()->create()` takes `success_url` and `cancel_url`, which the invoice's page and its charges' checkout offer the customer as a way back to your site, and `$invoice->successUrl` and `$invoice->cancelUrl` read them back. The README's invoice example passes both.

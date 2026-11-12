@@ -186,6 +186,23 @@ final class TestingHelpersTest extends TestCase
         $this->assertNull($charge->get('payment_request'));
     }
 
+    public function test_fake_customers_have_the_fields_of_real_ones_in_their_order(): void
+    {
+        $customer = FakeWebhook::event('charge.paid')->charge?->customer;
+        $hidden = FakeWebhook::event('charge.paid', ['customer' => ['ip_address' => '198.51.100.4', 'ip_country' => 'T1', 'ip_asn' => 24940, 'ip_network' => 'Hetzner Online GmbH']])->charge?->customer;
+
+        $this->assertNotNull($customer);
+        $this->assertSame([
+            'email', 'name', 'ip_address', 'ip_country', 'ip_asn', 'ip_network', 'user_agent', 'reference', 'phone', 'country', 'metadata',
+        ], array_keys($customer->toArray()));
+        $this->assertNull($customer->ipCountry);
+        $this->assertNull($customer->ipAsn);
+        $this->assertNull($customer->ipNetwork);
+        $this->assertSame('T1', $hidden?->ipCountry);
+        $this->assertSame(24940, $hidden->ipAsn);
+        $this->assertSame('Hetzner Online GmbH', $hidden->ipNetwork);
+    }
+
     public function test_a_fake_test_delivery_is_the_dashboard_sample(): void
     {
         $payload = FakeWebhook::payload(EventType::InvoicePaid, payload: ['test' => true]);
