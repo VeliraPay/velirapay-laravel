@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace VeliraPay\Laravel\Testing;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use VeliraPay\Enums\EventType;
+use VeliraPay\Webhooks\Webhook;
 use VeliraPay\Webhooks\WebhookEvent;
 
 /**
@@ -17,7 +19,7 @@ final class FakeWebhook
     /**
      * Build a delivery's payload, or with "test" set, the sample the dashboard's "Send test event" button sends.
      *
-     * @param  array<string, mixed>  $object  Attributes to set on the charge or invoice.
+     * @param  array<string, mixed>  $object  Attributes to set on the charge or invoice, with those of a payout delivery's payout under "payout", or on a verification challenge's data, such as "challenge".
      * @param  array<string, mixed>  $payload  Attributes to set on the payload itself, such as "mode" or "test".
      * @return array<string, mixed>
      */
@@ -38,9 +40,20 @@ final class FakeWebhook
             ], $payload);
         }
 
+        if ($type === Webhook::VERIFICATION_EVENT) {
+            return array_replace([
+                'id' => (string) Str::uuid(),
+                'event' => $type,
+                'mode' => 'test',
+                'created_at' => $now->toISOString(),
+                'data' => array_replace(['challenge' => Str::random(40)], $object),
+            ], $payload);
+        }
+
         if (str_starts_with($type, 'invoice.')) {
             $data = ['invoice' => array_replace(self::invoice($type, $now), $object)];
         } else {
+            $payout = str_starts_with($type, 'payout.') ? Arr::pull($object, 'payout') : null;
             $data = ['charge' => $charge = array_replace(self::charge($type, $live, $now), $object)];
             $transactions = is_array($charge['transactions'] ?? null) ? $charge['transactions'] : [];
 
@@ -49,7 +62,7 @@ final class FakeWebhook
             }
 
             if (str_starts_with($type, 'payout.')) {
-                $data['payout'] = self::payout($type, $charge, $live, $now);
+                $data['payout'] = array_replace(self::payout($type, $charge, $live, $now), is_array($payout) ? $payout : []);
             }
         }
 
@@ -66,7 +79,7 @@ final class FakeWebhook
     /**
      * Build a delivery, as the webhook route would hand it to listeners.
      *
-     * @param  array<string, mixed>  $object  Attributes to set on the charge or invoice.
+     * @param  array<string, mixed>  $object  Attributes to set on the charge or invoice, with those of a payout delivery's payout under "payout", or on a verification challenge's data, such as "challenge".
      * @param  array<string, mixed>  $payload  Attributes to set on the payload itself, such as "mode" or "test".
      */
     public static function event(EventType|string $type, array $object = [], array $payload = []): WebhookEvent

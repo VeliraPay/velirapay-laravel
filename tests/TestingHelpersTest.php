@@ -9,8 +9,10 @@ use Illuminate\Support\Facades\Event;
 use VeliraPay\Enums\EventType;
 use VeliraPay\Laravel\Events\ChargePaid;
 use VeliraPay\Laravel\Events\InvoiceVoided;
+use VeliraPay\Laravel\Events\WebhookReceived;
 use VeliraPay\Laravel\Testing\FakeWebhook;
 use VeliraPay\Laravel\Testing\SendsVeliraPayWebhooks;
+use VeliraPay\Webhooks\Webhook;
 use VeliraPay\Webhooks\WebhookEvent;
 
 final class TestingHelpersTest extends TestCase
@@ -63,6 +65,48 @@ final class TestingHelpersTest extends TestCase
         $this->assertTrue($confirmed->payout?->isSent());
         $this->assertNotNull($confirmed->payout->confirmedAt);
         $this->assertNull(FakeWebhook::event('charge.paid')->payout);
+    }
+
+    public function test_a_fake_payout_takes_attributes_of_its_own(): void
+    {
+        $webhook = FakeWebhook::event('payout.confirmed', [
+            'metadata' => ['order_id' => '42'],
+            'payout' => ['network_fee' => '0.000007', 'sent_amount' => '0.000381'],
+        ]);
+
+        $this->assertSame('0.000007', $webhook->payout?->networkFee);
+        $this->assertSame('0.000381', $webhook->payout->sentAmount);
+        $this->assertSame('0.000388', $webhook->payout->netAmount);
+        $this->assertSame(['order_id' => '42'], $webhook->charge?->metadata);
+        $this->assertArrayNotHasKey('payout', $webhook->charge->toArray());
+    }
+
+    public function test_a_fake_verification_challenge_is_answered(): void
+    {
+        Event::fake();
+
+        $this->postVeliraPayWebhook('webhook.verification', ['challenge' => 'c4Lr9xT2mQ7vZ1'])
+            ->assertOk()
+            ->assertExactJson(['challenge' => 'c4Lr9xT2mQ7vZ1']);
+
+        $challenge = $this->postVeliraPayWebhook(Webhook::VERIFICATION_EVENT)->assertOk()->json('challenge');
+
+        $this->assertIsString($challenge);
+        $this->assertSame(40, strlen($challenge));
+        Event::assertNotDispatched(WebhookReceived::class);
+    }
+
+    public function test_a_fake_verification_challenge_has_the_shape_of_a_real_one(): void
+    {
+        $payload = FakeWebhook::payload('webhook.verification');
+        $live = FakeWebhook::event('webhook.verification', payload: ['mode' => 'live']);
+
+        $this->assertSame(['id', 'event', 'mode', 'created_at', 'data'], array_keys($payload));
+        $this->assertSame('test', $payload['mode']);
+        $this->assertTrue($live->isVerification());
+        $this->assertTrue($live->isLiveMode());
+        $this->assertNull($live->charge);
+        $this->assertSame(40, strlen((string) $live->challenge()));
     }
 
     public function test_fake_deliveries_match_their_type(): void

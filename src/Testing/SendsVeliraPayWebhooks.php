@@ -19,7 +19,7 @@ trait SendsVeliraPayWebhooks
     /**
      * Send a signed webhook delivery to the application, as VeliraPay would.
      *
-     * @param  array<string, mixed>  $object  Attributes to set on the charge or invoice.
+     * @param  array<string, mixed>  $object  Attributes to set on the charge or invoice, with those of a payout delivery's payout under "payout", or on a verification challenge's data, such as "challenge".
      * @param  array<string, mixed>  $payload  Attributes to set on the payload itself, such as "mode" or "test".
      * @param  string|null  $uri  Where to send it; the package's webhook route when null.
      * @return TestResponse<Response>
