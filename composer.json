@@ -1,16 +1,30 @@
 {
     "name": "velirapay/velirapay-laravel",
-    "description": "VeliraPay for Laravel: a configured API client, a facade, and verified webhooks dispatched as Laravel events.",
+    "description": "The official Laravel package for VeliraPay crypto payments: the API client configured from .env behind a facade, verified webhooks dispatched as Laravel events, and helpers to test both.",
     "type": "library",
     "keywords": [
         "velirapay",
         "laravel",
+        "laravel-package",
         "crypto",
+        "cryptocurrency",
+        "crypto-payments",
         "payments",
         "payment-gateway",
+        "payment-processing",
         "bitcoin",
+        "lightning",
         "ethereum",
-        "webhooks"
+        "litecoin",
+        "solana",
+        "tron",
+        "usdt",
+        "usdc",
+        "stablecoin",
+        "webhooks",
+        "sdk",
+        "api",
+        "api-client"
     ],
     "homepage": "https://velirapay.com",
     "license": "MIT",
@@ -21,9 +35,10 @@
         }
     ],
     "support": {
-        "docs": "https://velirapay.com/docs",
+        "docs": "https://velirapay.com/docs/libraries",
         "issues": "https://github.com/VeliraPay/velirapay-laravel/issues",
-        "source": "https://github.com/VeliraPay/velirapay-laravel"
+        "source": "https://github.com/VeliraPay/velirapay-laravel",
+        "security": "https://github.com/VeliraPay/velirapay-laravel/security/policy"
     },
     "require": {
         "php": "^8.2",
