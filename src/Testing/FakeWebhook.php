@@ -111,6 +111,7 @@ final class FakeWebhook
             'discount_amount' => null,
             'asset' => 'BTC',
             'asset_amount' => '0.000400000000000000',
+            'network_surcharge' => null,
             'received_amount' => $received,
             'remaining_amount' => match ($status) {
                 'paid' => '0',
@@ -121,6 +122,7 @@ final class FakeWebhook
             'refunded_amount' => $type === 'charge.refunded' ? '0.000400000000000000' : '0',
             'exchange_rate' => '62500.000000000000000000',
             'deposit_address' => self::depositAddress($live),
+            'payment_request' => null,
             'transactions' => $transfer === null ? [] : [$transfer],
             'customer_email' => 'customer@example.com',
             'customer_name' => null,

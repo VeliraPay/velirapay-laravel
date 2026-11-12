@@ -99,6 +99,21 @@ final class TestingHelpersTest extends TestCase
         }
     }
 
+    public function test_fake_charges_have_the_fields_of_real_ones_in_their_order(): void
+    {
+        $charge = FakeWebhook::event('charge.paid')->charge;
+
+        $this->assertNotNull($charge);
+        $this->assertSame([
+            'code', 'status', 'fiat_amount', 'fiat_currency', 'coupon', 'discount_amount', 'asset', 'asset_amount',
+            'network_surcharge', 'received_amount', 'remaining_amount', 'overpaid', 'refunded_amount', 'exchange_rate',
+            'deposit_address', 'payment_request', 'transactions', 'customer_email', 'customer_name', 'customer',
+            'custom_fields', 'description', 'metadata', 'payment_link', 'invoice', 'created_at', 'expires_at', 'paid_at',
+        ], array_keys($charge->toArray()));
+        $this->assertNull($charge->get('network_surcharge'));
+        $this->assertNull($charge->get('payment_request'));
+    }
+
     public function test_a_fake_test_delivery_is_the_dashboard_sample(): void
     {
         $payload = FakeWebhook::payload(EventType::InvoicePaid, payload: ['test' => true]);
