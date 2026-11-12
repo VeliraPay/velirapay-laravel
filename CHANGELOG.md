@@ -2,8 +2,9 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.5 - 2026-11-12
 
+- Requires `velirapay/velirapay-php` 0.6.9, so `$charge->customer->ipCountry`, `ipAsn` and `ipNetwork` read the country and network of the customer's IP address, and a blank idempotency key counts as none, so the library makes one up rather than sending a blank one the API ignores, under which a retried write could be carried out twice.
 - Fake charges' customers carry `ip_country`, `ip_asn` and `ip_network`, null, after `ip_address`, as the customers VeliraPay delivers now do. The README says what `$charge->customer->ipCountry`, `ipAsn` and `ipNetwork` are for, and that a `customer` passed to `FakeWebhook` or `postVeliraPayWebhook()` replaces the fake one whole.
 
 ## 0.6.4 - 2026-11-12
