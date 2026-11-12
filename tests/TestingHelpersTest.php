@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use LogicException;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
+use VeliraPay\Enums\Asset;
+use VeliraPay\Enums\ChargeStatus;
 use VeliraPay\Enums\EventType;
+use VeliraPay\Enums\Mode;
 use VeliraPay\Laravel\Events\ChargePaid;
 use VeliraPay\Laravel\Events\InvoiceVoided;
 use VeliraPay\Laravel\Events\WebhookReceived;
@@ -195,6 +198,18 @@ final class TestingHelpersTest extends TestCase
         $this->assertTrue($webhook->charge->isPaid());
         $this->assertSame(['test' => true], $webhook->charge->metadata);
         $this->assertArrayNotHasKey('customer', $webhook->charge->toArray());
+    }
+
+    public function test_fake_deliveries_take_enum_cases_for_their_values(): void
+    {
+        $payload = FakeWebhook::payload(EventType::ChargeUnderpaid, ['asset' => Asset::LTC, 'status' => ChargeStatus::Underpaid], ['mode' => Mode::Live]);
+        $webhook = WebhookEvent::fromArray($payload);
+
+        $this->assertSame('live', $payload['mode']);
+        $this->assertTrue($webhook->isLiveMode());
+        $this->assertSame('LTC', $webhook->charge?->asset);
+        $this->assertTrue($webhook->charge->isUnderpaid());
+        $this->assertStringStartsWith('bc1', $webhook->charge->depositAddress);
     }
 
     public function test_fake_live_deliveries_are_on_the_main_network(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace VeliraPay\Laravel\Testing;
 
+use BackedEnum;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -26,6 +27,8 @@ final class FakeWebhook
     public static function payload(EventType|string $type, array $object = [], array $payload = []): array
     {
         $type = $type instanceof EventType ? $type->value : $type;
+        $object = self::values($object);
+        $payload = self::values($payload);
         $now = Carbon::now('UTC');
         $live = ($payload['mode'] ?? null) === 'live';
 
@@ -85,6 +88,23 @@ final class FakeWebhook
     public static function event(EventType|string $type, array $object = [], array $payload = []): WebhookEvent
     {
         return WebhookEvent::fromArray(self::payload($type, $object, $payload));
+    }
+
+    /**
+     * Replace the enum cases among the given attributes, and in the lists and objects under them, with their values.
+     *
+     * @template TKey of array-key
+     *
+     * @param  array<TKey, mixed>  $attributes
+     * @return array<TKey, mixed>
+     */
+    private static function values(array $attributes): array
+    {
+        return array_map(static fn (mixed $value): mixed => match (true) {
+            $value instanceof BackedEnum => $value->value,
+            is_array($value) => self::values($value),
+            default => $value,
+        }, $attributes);
     }
 
     /**
