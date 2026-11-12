@@ -226,9 +226,13 @@ final class ClientTest extends TestCase
     #[DataProvider('unusableRetryAfters')]
     public function test_an_unusable_longest_retry_after_falls_back_to_the_default(mixed $seconds): void
     {
-        config(['velirapay.max_retry_after' => $seconds]);
+        config(['velirapay.max_retries' => 1, 'velirapay.max_retry_after' => $seconds]);
+        Http::fake(['*' => Http::sequence()
+            ->push(['message' => 'Too many requests.'], 429, ['Retry-After' => '1'])
+            ->push(['data' => ['id' => 'acme', 'name' => 'Acme']])]);
 
-        $this->assertSame(app(VeliraPayClient::class)->charges, VeliraPay::charges());
+        $this->assertSame('acme', VeliraPay::account()->retrieve()->id);
+        Http::assertSentCount(2);
     }
 
     /**
