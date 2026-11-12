@@ -90,8 +90,10 @@ $charge = VeliraPay::charges()->create([
     'cancel_url' => route('cart'),
 ], idempotencyKey: "order-{$order->id}-attempt-{$order->payment_attempts}");
 
-return redirect()->away($charge->checkoutUrl);
+return redirect()->away($charge->checkoutUrl ?? abort(502));
 ```
+
+`checkoutUrl` is nullable because the charges in webhooks leave it out; a charge the API answers with always has one.
 
 The idempotency key makes the call safe to repeat: sent again with the same key, the same request gets the same charge rather than a second one. Reuse a key only to retry the same request. For 24 hours the API answers a repeated key with the first charge, even once it has expired, or with a 409 when the body differs, which the library throws as a `ConflictException`. So a new charge for the same order, after the first one expired or in another coin, needs a new key, which `payment_attempts` gives it: a counter on the order, raised each time the customer starts paying again.
 
@@ -170,7 +172,7 @@ VeliraPay::coupons()->create([
 ]);
 ```
 
-Customers type a coupon's code on a payment link's checkout, `?coupon=SPRING10` on the link's address fills it in, and `charges()->create()` takes it as `coupon`; invoices take none. An invoice's `due_at` is sent as the day it falls on, and a coupon's or payment link's `expires_at` as the same moment in UTC, whatever your application's time zone. An invoice can be emailed once every 10 minutes, and an account sends at most 100 emails to customers an hour; past either, a `RateLimitException` says how long to wait.
+Customers type a coupon's code on a payment link's checkout, `?coupon=SPRING10` on the link's address fills it in, and `charges()->create()` takes it as `coupon`; invoices take none. An invoice's `due_at` is sent as the day it falls on, and a coupon's or payment link's `expires_at` as the same moment in UTC, whatever your application's time zone. An invoice can be emailed once every 10 minutes, and an account sends at most 100 emails to customers an hour, or 10 until one of its owner's accounts has been paid in live mode; past either, a `RateLimitException` says how long to wait.
 
 ### Payouts and payout addresses
 
