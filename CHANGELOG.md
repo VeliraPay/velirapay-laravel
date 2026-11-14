@@ -7,6 +7,7 @@ All notable changes to this package are documented here. It follows [Semantic Ve
 - Fake charges carry `processing_terms`, `['percent' => '1.75', 'max_forwarding_percent' => 10]` as on a charge quoted today on the Free plan, and `switched_from`, null, after `network_surcharge`, as the charges VeliraPay delivers now do. The dashboard's sample charge, with `['test' => true]`, still has neither, as VeliraPay's has not.
 - Passing `switched_from` with the new coin's `asset`, `asset_amount`, `exchange_rate` and `network_surcharge` fakes a Tron charge quoted again in the other Tron coin, the one that arrived, as VeliraPay now does with a charge that expired or was canceled while only the other coin reached its address.
 - The README covers such a charge: it keeps its id and `fiatAmount` but changes coin once, with `$charge->get('switched_from')` holding the first quote, its transfer waits as a late payment, and `ChargePaid` follows in the new coin, so a listener reads the coin from each delivery rather than from what it stored at creation.
+- Fake payouts follow their charge's processing terms: `fee_percent` is `1.75`, the fee `0.000007` of the `0.0004` gross, worth `0.44`, the net `0.000393`, and the chain's fee comes out of the merchant's share, so `sent_amount` is `0.0003886`, as VeliraPay books a Bitcoin payout of a charge quoted today. They kept 3%, as before VeliraPay fixed the rate on each charge. They also carry `merchant_network_reserve`, null, after `network_fee`, as the payouts VeliraPay delivers now do.
 
 ## 0.6.5 - 2026-11-12
 

@@ -99,14 +99,35 @@ final class TestingHelpersTest extends TestCase
     {
         $webhook = FakeWebhook::event('payout.confirmed', [
             'metadata' => ['order_id' => '42'],
-            'payout' => ['network_fee' => '0.000007', 'sent_amount' => '0.000381'],
+            'payout' => ['network_fee' => '0.000007', 'sent_amount' => '0.000386'],
         ]);
 
         $this->assertSame('0.000007', $webhook->payout?->networkFee);
-        $this->assertSame('0.000381', $webhook->payout->sentAmount);
-        $this->assertSame('0.000388', $webhook->payout->netAmount);
+        $this->assertSame('0.000386', $webhook->payout->sentAmount);
+        $this->assertSame('0.000393', $webhook->payout->netAmount);
         $this->assertSame(['order_id' => '42'], $webhook->charge?->metadata);
         $this->assertArrayNotHasKey('payout', $webhook->charge->toArray());
+    }
+
+    public function test_a_fake_payout_has_the_fields_of_a_real_one_and_the_fee_of_its_charge(): void
+    {
+        $webhook = FakeWebhook::event('payout.sent');
+        $payout = $webhook->payout;
+        $terms = $webhook->charge?->get('processing_terms');
+
+        $this->assertNotNull($payout);
+        $this->assertSame([
+            'id', 'object', 'charge', 'status', 'asset', 'gross_amount', 'fee_percent', 'fee_amount', 'fee_fiat_amount',
+            'fiat_currency', 'exchange_rate', 'net_amount', 'network_fee', 'merchant_network_reserve', 'sent_amount',
+            'payout_address', 'payout_txid', 'explorer_url', 'attempts', 'last_error', 'next_attempt_at', 'sent_at',
+            'confirmed_at', 'created_at',
+        ], array_keys($payout->toArray()));
+        $this->assertNull($payout->get('merchant_network_reserve'));
+        $this->assertIsArray($terms);
+        $this->assertSame($terms['percent'], $payout->feePercent);
+        $this->assertSame(['0.0004', '0.000007', '0.000393'], [$payout->grossAmount, $payout->feeAmount, $payout->netAmount]);
+        $this->assertSame('0.44', $payout->feeFiatAmount);
+        $this->assertSame(['0.0000044', '0.0003886'], [$payout->networkFee, $payout->sentAmount]);
     }
 
     public function test_a_fake_verification_challenge_is_answered(): void
