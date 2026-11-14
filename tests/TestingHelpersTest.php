@@ -113,7 +113,7 @@ final class TestingHelpersTest extends TestCase
     {
         $webhook = FakeWebhook::event('payout.sent');
         $payout = $webhook->payout;
-        $terms = $webhook->charge?->get('processing_terms');
+        $terms = $webhook->charge?->processingTerms;
 
         $this->assertNotNull($payout);
         $this->assertSame([
@@ -122,9 +122,9 @@ final class TestingHelpersTest extends TestCase
             'payout_address', 'payout_txid', 'explorer_url', 'attempts', 'last_error', 'next_attempt_at', 'sent_at',
             'confirmed_at', 'created_at',
         ], array_keys($payout->toArray()));
-        $this->assertNull($payout->get('merchant_network_reserve'));
-        $this->assertIsArray($terms);
-        $this->assertSame($terms['percent'], $payout->feePercent);
+        $this->assertNull($payout->merchantNetworkReserve);
+        $this->assertNotNull($terms);
+        $this->assertSame($terms->percent, $payout->feePercent);
         $this->assertSame(['0.0004', '0.000007', '0.000393'], [$payout->grossAmount, $payout->feeAmount, $payout->netAmount]);
         $this->assertSame('0.44', $payout->feeFiatAmount);
         $this->assertSame(['0.0000044', '0.0003886'], [$payout->networkFee, $payout->sentAmount]);
@@ -205,8 +205,9 @@ final class TestingHelpersTest extends TestCase
             'created_at', 'expires_at', 'paid_at',
         ], array_keys($charge->toArray()));
         $this->assertNull($charge->get('network_surcharge'));
-        $this->assertSame(['percent' => '1.75', 'max_forwarding_percent' => 10], $charge->get('processing_terms'));
-        $this->assertNull($charge->get('switched_from'));
+        $this->assertSame('1.75', $charge->processingTerms?->percent);
+        $this->assertSame(10, $charge->processingTerms->maxForwardingPercent);
+        $this->assertNull($charge->switchedFrom);
         $this->assertNull($charge->get('payment_request'));
     }
 
@@ -230,7 +231,11 @@ final class TestingHelpersTest extends TestCase
         $this->assertSame('USDT_TRON', $webhook->charge?->asset);
         $this->assertSame('27.500000000000000000', $webhook->charge->assetAmount);
         $this->assertSame('2.500000000000000000', $webhook->charge->networkSurcharge);
-        $this->assertSame($switchedFrom, $webhook->charge->get('switched_from'));
+        $this->assertSame($switchedFrom, $webhook->charge->switchedFrom?->toArray());
+        $this->assertSame('TRX', $webhook->charge->switchedFrom->asset);
+        $this->assertSame('83.333334000000000000', $webhook->charge->switchedFrom->assetAmount);
+        $this->assertSame('0.300000000000000000', $webhook->charge->switchedFrom->exchangeRate);
+        $this->assertEquals(new DateTimeImmutable('2026-11-14T12:05:49Z'), $webhook->charge->switchedFrom->switchedAt);
         $this->assertSame('25.00', $webhook->charge->fiatAmount);
         $this->assertNotNull($webhook->transaction);
     }

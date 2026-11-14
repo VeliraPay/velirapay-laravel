@@ -101,6 +101,8 @@ The idempotency key makes the call safe to repeat: sent again with the same key,
 
 `coupon` takes one of your coupon codes off the price: `$charge->fiatAmount` is then the lower price and `$charge->discountAmount` what the coupon took off. `send_email` emails the customer the payment page, as `VeliraPay::charges()->send($charge->id)` does later.
 
+`$charge->processingTerms` is the processing fee fixed when the charge was quoted, such as `percent` `"1.75"`, with `maxForwardingPercent`, the most forwarding your payout may cost as a share of it, such as `10`. It is `null` for charges quoted before VeliraPay fixed them.
+
 Do not create a new payment link for each customer or each order. A payment link is one reusable public page that many customers pay through; an invoice suits a bill to pay later, or a customer who should choose the coin on its page. A charge needs its coin up front, so ask the customer, and offer the coins your account takes, with the lowest price each can be charged at:
 
 ```php
@@ -136,7 +138,7 @@ VeliraPay::charges()->cancel($charge->id); // only while it is pending and no tr
 
 A charge whose confirmed payment fell short of your tolerance is underpaid, and money that reaches a charge after it expired or was canceled, or tops up an underpaid charge after its rate lock ended, is a late payment. Both wait for you to accept them, in the dashboard or with `accept()`, which settles the charge for what arrived and sends `ChargePaid`. It throws a `ConflictException` while a payment to an underpaid charge is still confirming. A late payment on top of a charge already paid is counted automatically.
 
-TRX and USDT on Tron are paid into the same kind of address, and customers sometimes send the one they were not asked for. A charge that expired or was canceled with nothing of its own coin while the other arrived is quoted again in what arrived, once at most: the same charge, with the same id and `fiatAmount`, now has the new coin's `asset`, `assetAmount`, `exchangeRate` and `networkSurcharge`, and `$charge->get('switched_from')` keeps the first quote, its `asset`, `asset_amount`, `exchange_rate` and `switched_at`. It is `null` for every other charge. The transfer waits as a late payment, and once you accept it, `ChargePaid` and the payout follow in the new coin.
+TRX and USDT on Tron are paid into the same kind of address, and customers sometimes send the one they were not asked for. A charge that expired or was canceled with nothing of its own coin while the other arrived is quoted again in what arrived, once at most: the same charge, with the same id and `fiatAmount`, now has the new coin's `asset`, `assetAmount`, `exchangeRate` and `networkSurcharge`, and `$charge->switchedFrom` keeps the first quote, its `asset`, `assetAmount`, `exchangeRate` and `switchedAt`. It is `null` for every other charge. The transfer waits as a late payment, and once you accept it, `ChargePaid` and the payout follow in the new coin.
 
 `recordRefund()` records a refund you sent from your own wallet; VeliraPay never sends money back itself. An underpaid charge or a late payment is accepted first, and the network surcharge is never refundable.
 
@@ -191,6 +193,7 @@ $payout->status;     // "pending", "sending", "sent", "failed" or "manual"
 $payout->netAmount;  // what you are owed, before the chain's fee
 $payout->sentAmount; // what reached your address
 $payout->payoutTxid;
+$payout->merchantNetworkReserve?->held; // what of your share is still set aside for network costs not known when it went out, as on ETH, TRX or Lightning
 
 foreach (VeliraPay::payouts()->summary() as $coin) {
     $coin->asset;
@@ -473,7 +476,7 @@ Some things to know:
 - **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid`, whatever types the endpoint subscribes to, with `$event->webhook->test` set and no `eventId`. It dispatches `WebhookReceived` only, so your `ChargePaid` listeners never run on the sample charge.
 - **Coupons lower the price.** A customer who used one of your coupons pays less than the full price: `$event->charge->fiatAmount` is the lower price, `$event->charge->coupon` the code and `$event->charge->discountAmount` what it took off, so the full price is `bcadd($event->charge->fiatAmount, $event->charge->discountAmount ?? '0', 2)`. Account for the discount when you compare the amount with your order, and check `fiatCurrency` too.
 - **The network surcharge is not the price.** On a coin such as USDT on Tron, `$event->charge->assetAmount` includes `networkSurcharge`, the network fee the customer paid on top of the price, which VeliraPay keeps.
-- **Read the coin from each delivery.** A Tron charge paid in the other Tron coin keeps its id but changes `asset` once, so its `ChargeLatePayment` and `ChargePaid` name a coin other than the one it was created with, and `$event->charge->get('switched_from')` holds the first quote. Take `asset` and `assetAmount` from the payload rather than from what you stored when you created it. This is not the charge a customer replaced by picking another coin at checkout, which ends in `ChargeCanceled` while a new charge takes over.
+- **Read the coin from each delivery.** A Tron charge paid in the other Tron coin keeps its id but changes `asset` once, so its `ChargeLatePayment` and `ChargePaid` name a coin other than the one it was created with, and `$event->charge->switchedFrom` holds the first quote. Take `asset` and `assetAmount` from the payload rather than from what you stored when you created it. This is not the charge a customer replaced by picking another coin at checkout, which ends in `ChargeCanceled` while a new charge takes over.
 - **Amounts are strings.** A charge's coin amounts and exchange rate, and its transfers' amounts, are not trimmed in webhooks, such as `"0.000400000000000000"` where the API says `"0.0004"`. `$event->payout`'s amounts are trimmed, as in the API, and fiat amounts read like `"49.90"`. Compare them all with `bccomp()`, never as strings or floats.
 - **Simulated payments.** A payment simulated in test mode sends `ChargePaid`, or `ChargeUnderpaid`, without a `ChargePaymentDetected` first, and its transfer's `explorerUrl` is null.
 - **Refunds.** `ChargeRefunded` carries the charge, whose `refundedAmount` is the total refunded so far, but not the refund itself. Read its amount, and its txid and reason when you gave them, from `VeliraPay::events()->retrieve($event->webhook->eventId)->details`.
