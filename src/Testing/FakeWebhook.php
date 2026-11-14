@@ -145,6 +145,8 @@ final class FakeWebhook
             'asset' => 'BTC',
             'asset_amount' => '0.000400000000000000',
             'network_surcharge' => null,
+            'processing_terms' => ['percent' => '1.75', 'max_forwarding_percent' => 10],
+            'switched_from' => null,
             'received_amount' => $received,
             'remaining_amount' => match ($status) {
                 'paid' => '0',

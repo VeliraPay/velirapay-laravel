@@ -178,12 +178,40 @@ final class TestingHelpersTest extends TestCase
         $this->assertNotNull($charge);
         $this->assertSame([
             'code', 'status', 'fiat_amount', 'fiat_currency', 'coupon', 'discount_amount', 'asset', 'asset_amount',
-            'network_surcharge', 'received_amount', 'remaining_amount', 'overpaid', 'refunded_amount', 'exchange_rate',
-            'deposit_address', 'payment_request', 'transactions', 'customer_email', 'customer_name', 'customer',
-            'custom_fields', 'description', 'metadata', 'payment_link', 'invoice', 'created_at', 'expires_at', 'paid_at',
+            'network_surcharge', 'processing_terms', 'switched_from', 'received_amount', 'remaining_amount', 'overpaid',
+            'refunded_amount', 'exchange_rate', 'deposit_address', 'payment_request', 'transactions', 'customer_email',
+            'customer_name', 'customer', 'custom_fields', 'description', 'metadata', 'payment_link', 'invoice',
+            'created_at', 'expires_at', 'paid_at',
         ], array_keys($charge->toArray()));
         $this->assertNull($charge->get('network_surcharge'));
+        $this->assertSame(['percent' => '1.75', 'max_forwarding_percent' => 10], $charge->get('processing_terms'));
+        $this->assertNull($charge->get('switched_from'));
         $this->assertNull($charge->get('payment_request'));
+    }
+
+    public function test_a_fake_charge_can_be_quoted_again_in_the_coin_that_arrived(): void
+    {
+        $switchedFrom = [
+            'asset' => 'TRX',
+            'asset_amount' => '83.333334000000000000',
+            'exchange_rate' => '0.300000000000000000',
+            'switched_at' => '2026-11-14T12:05:49.000000Z',
+        ];
+
+        $webhook = FakeWebhook::event(EventType::ChargeLatePayment, [
+            'asset' => Asset::USDT_TRON,
+            'asset_amount' => '27.500000000000000000',
+            'exchange_rate' => '1.000000000000000000',
+            'network_surcharge' => '2.500000000000000000',
+            'switched_from' => [...$switchedFrom, 'asset' => Asset::TRX],
+        ]);
+
+        $this->assertSame('USDT_TRON', $webhook->charge?->asset);
+        $this->assertSame('27.500000000000000000', $webhook->charge->assetAmount);
+        $this->assertSame('2.500000000000000000', $webhook->charge->networkSurcharge);
+        $this->assertSame($switchedFrom, $webhook->charge->get('switched_from'));
+        $this->assertSame('25.00', $webhook->charge->fiatAmount);
+        $this->assertNotNull($webhook->transaction);
     }
 
     public function test_fake_customers_have_the_fields_of_real_ones_in_their_order(): void
@@ -215,6 +243,8 @@ final class TestingHelpersTest extends TestCase
         $this->assertTrue($webhook->charge->isPaid());
         $this->assertSame(['test' => true], $webhook->charge->metadata);
         $this->assertArrayNotHasKey('customer', $webhook->charge->toArray());
+        $this->assertArrayNotHasKey('processing_terms', $webhook->charge->toArray());
+        $this->assertArrayNotHasKey('switched_from', $webhook->charge->toArray());
     }
 
     public function test_fake_deliveries_take_enum_cases_for_their_values(): void

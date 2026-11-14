@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- Fake charges carry `processing_terms`, `['percent' => '1.75', 'max_forwarding_percent' => 10]` as on a charge quoted today on the Free plan, and `switched_from`, null, after `network_surcharge`, as the charges VeliraPay delivers now do. The dashboard's sample charge, with `['test' => true]`, still has neither, as VeliraPay's has not.
+- Passing `switched_from` with the new coin's `asset`, `asset_amount`, `exchange_rate` and `network_surcharge` fakes a Tron charge quoted again in the other Tron coin, the one that arrived, as VeliraPay now does with a charge that expired or was canceled while only the other coin reached its address.
+- The README covers such a charge: it keeps its id and `fiatAmount` but changes coin once, with `$charge->get('switched_from')` holding the first quote, its transfer waits as a late payment, and `ChargePaid` follows in the new coin, so a listener reads the coin from each delivery rather than from what it stored at creation.
+
 ## 0.6.5 - 2026-11-12
 
 - Requires `velirapay/velirapay-php` 0.6.9, so `$charge->customer->ipCountry`, `ipAsn` and `ipNetwork` read the country and network of the customer's IP address, and a blank idempotency key counts as none, so the library makes one up rather than sending a blank one the API ignores, under which a retried write could be carried out twice.
