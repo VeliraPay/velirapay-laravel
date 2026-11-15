@@ -2,6 +2,11 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.7 - 2026-11-15
+
+- Requires `velirapay/velirapay-php` 0.6.11, so `invoices()->create()` takes `success_message` and `expires_at` and no longer needs `customer_name` or `customer_email`, and `$invoice->successMessage` and `$invoice->expiresAt` read them back. An invoice that names nobody can be paid by whoever has its link, which makes one invoice per order a checkout where the buyer picks the coin. After its `expires_at` no new payment starts, one already started can finish, and an invoice still unpaid once nothing is under way is voided, with `InvoiceVoided`. The README shows such an invoice.
+- Fake invoices carry `expires_at` and `success_message`, null, `overdue`, false, and `document_url`, `success_url` and `cancel_url`, as the invoices VeliraPay delivers now do.
+
 ## 0.6.6 - 2026-11-14
 
 - Requires `velirapay/velirapay-php` 0.6.10, so `$charge->switchedFrom` reads the first quote of a charge VeliraPay quoted again in the coin that arrived (`asset`, `assetAmount`, `exchangeRate`, `switchedAt`), `$charge->processingTerms` the processing fee and forwarding limit fixed when it was quoted (`percent`, `maxForwardingPercent`), and `$payout->merchantNetworkReserve` what a payout set aside from the merchant's share for network costs not known when it went out, and what became of it. The README says what each is for.
