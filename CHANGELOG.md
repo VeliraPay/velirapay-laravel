@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.8 - 2026-11-15
+
+- Requires `velirapay/velirapay-php` 0.6.12. An invoice must name its customer: `invoices()->create()` needs `customer_name`, `customer_email` or both, or throws a `ValidationException` on `customer_name` and creates nothing. A name alone, such as the buyer's username, is enough, so one invoice per order is still a checkout where the buyer picks the coin; `$invoice->customerName` is null for an invoice given only an email, and `$invoice->customerEmail` for one given only a name. The README now shows it.
+
 ## 0.6.7 - 2026-11-15
 
 - Requires `velirapay/velirapay-php` 0.6.11, so `invoices()->create()` takes `success_message` and `expires_at` and no longer needs `customer_name` or `customer_email`, and `$invoice->successMessage` and `$invoice->expiresAt` read them back. An invoice that names nobody can be paid by whoever has its link, which makes one invoice per order a checkout where the buyer picks the coin. After its `expires_at` no new payment starts, one already started can finish, and an invoice still unpaid once nothing is under way is voided, with `InvoiceVoided`. The README shows such an invoice.
