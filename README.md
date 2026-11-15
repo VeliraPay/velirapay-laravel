@@ -163,6 +163,20 @@ $invoice = VeliraPay::invoices()->create([
 
 $invoice->hostedUrl; // where the customer pays, in the coin of their choice
 
+// One invoice per order, as a checkout where the buyer picks the coin: no customer needed.
+$order = VeliraPay::invoices()->create([
+    'currency' => Currency::USD,
+    'items' => [
+        ['description' => 'Premium, 1 year', 'quantity' => '1', 'unit_amount' => '99.99'],
+    ],
+    'success_url' => 'https://example.com/premium/welcome',
+    'cancel_url' => 'https://example.com/premium',
+    'success_message' => 'Payment received. Your Premium is active.',
+    'expires_at' => now()->addDay(), // no new payment starts after this
+]);
+
+return redirect()->away($order->hostedUrl);
+
 $link = VeliraPay::paymentLinks()->create([
     'title' => 'Pro plan',
     'pricing_type' => PricingType::Fixed,
@@ -180,7 +194,7 @@ VeliraPay::coupons()->create([
 ]);
 ```
 
-Customers type a coupon's code on a payment link's checkout, `?coupon=SPRING10` on the link's address fills it in, and `charges()->create()` takes it as `coupon`; invoices take none. An invoice's `due_at` is sent as the day it falls on, and a coupon's or payment link's `expires_at` as the same moment in UTC, whatever your application's time zone. An invoice can be emailed once every 10 minutes, and an account sends at most 100 emails to customers an hour, or 10 until one of its owner's accounts has been paid in live mode; past either, a `RateLimitException` says how long to wait.
+Customers type a coupon's code on a payment link's checkout, `?coupon=SPRING10` on the link's address fills it in, and `charges()->create()` takes it as `coupon`; invoices take none. An invoice's `due_at` is sent as the day it falls on, and an invoice's, coupon's or payment link's `expires_at` as the same moment in UTC, whatever your application's time zone. An invoice's customer is optional, but one without `customer_email` cannot be sent or reminded. After its `expires_at` no new payment can start on its page; one the customer already started can still be finished, and an invoice still unpaid once nothing is under way is voided, which sends `InvoiceVoided`. `success_message` is what the customer is told once they have paid, on the payment page and in their receipt. An invoice can be emailed once every 10 minutes, and an account sends at most 100 emails to customers an hour, or 10 until one of its owner's accounts has been paid in live mode; past either, a `RateLimitException` says how long to wait.
 
 ### Payouts and payout addresses
 
