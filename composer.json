@@ -13,7 +13,6 @@
         "payment-gateway",
         "payment-processing",
         "bitcoin",
-        "lightning",
         "ethereum",
         "litecoin",
         "solana",

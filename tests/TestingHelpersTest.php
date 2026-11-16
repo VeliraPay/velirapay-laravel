@@ -200,7 +200,7 @@ final class TestingHelpersTest extends TestCase
         $this->assertSame([
             'code', 'status', 'fiat_amount', 'fiat_currency', 'coupon', 'discount_amount', 'asset', 'asset_amount',
             'network_surcharge', 'processing_terms', 'switched_from', 'received_amount', 'remaining_amount', 'overpaid',
-            'refunded_amount', 'exchange_rate', 'deposit_address', 'payment_request', 'transactions', 'customer_email',
+            'refunded_amount', 'exchange_rate', 'deposit_address', 'transactions', 'customer_email',
             'customer_name', 'customer', 'custom_fields', 'description', 'metadata', 'payment_link', 'invoice',
             'created_at', 'expires_at', 'paid_at',
         ], array_keys($charge->toArray()));
@@ -208,7 +208,6 @@ final class TestingHelpersTest extends TestCase
         $this->assertSame('1.75', $charge->processingTerms?->percent);
         $this->assertSame(10, $charge->processingTerms->maxForwardingPercent);
         $this->assertNull($charge->switchedFrom);
-        $this->assertNull($charge->get('payment_request'));
     }
 
     public function test_a_fake_charge_can_be_quoted_again_in_the_coin_that_arrived(): void

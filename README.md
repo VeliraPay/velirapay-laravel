@@ -116,8 +116,6 @@ No charge, payment link or invoice asks for less than the lowest price of its cu
 
 A coin such as USDT on Tron asks the customer for a fixed network fee on top of the price, 2.50 USDT at present; each coin's `networkSurcharge` in `VeliraPay::assets()->list()` says how much, so tell the customer before they choose it. A charge in such a coin counts it in `assetAmount` and gives it again as `$charge->networkSurcharge`, while `fiatAmount` stays the price. VeliraPay keeps it: it is not part of your payout, and a refund never includes it.
 
-A charge in `BTC_LIGHTNING` is paid with a Lightning invoice rather than to an address. The checkout page shows it; to show it on a page of your own, `$charge->paymentRequest` is the BOLT11 invoice, for a `lightning:` link or a QR code, and `$charge->depositAddress` its payment hash. `paymentRequest` is null for every other coin.
-
 The `customer` details help you spot fraud: the charge is created by your server, so VeliraPay only knows the customer's IP address and browser if you pass them. They come back as `$charge->customer`, along with the reference, phone, country and metadata you may also pass. Charges started on the hosted checkout record the customer's IP address and browser themselves.
 
 To help you spot bots and people hiding behind servers, VeliraPay also says whose network the IP address is on: `$charge->customer->ipNetwork` names who runs it, such as `"Hetzner Online GmbH"`, and `ipAsn` gives its number, such as `24940`, for any charge with an IP address. A customer on a hosting company's network, rather than an internet provider's, often is one. `ipCountry` is the country the IP address is in, or `"T1"` for Tor, for a charge started on a payment link or an invoice, and `null` for one created through the API. All three are `null` when not known, and webhooks carry them too.
@@ -208,7 +206,7 @@ $payout->status;     // "pending", "sending", "sent", "failed" or "manual"
 $payout->netAmount;  // what you are owed, before the chain's fee
 $payout->sentAmount; // what reached your address
 $payout->payoutTxid;
-$payout->merchantNetworkReserve?->held; // what of your share is still set aside for network costs not known when it went out, as on ETH, TRX or Lightning
+$payout->merchantNetworkReserve?->held; // what of your share is still set aside for network costs not known when it went out, as on ETH or TRX
 
 foreach (VeliraPay::payouts()->summary() as $coin) {
     $coin->asset;

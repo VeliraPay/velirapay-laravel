@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- Fake charges no longer carry `payment_request`, as VeliraPay no longer offers Bitcoin over Lightning and its charges no longer have it.
+
 ## 0.6.8 - 2026-11-15
 
 - Requires `velirapay/velirapay-php` 0.6.12. An invoice must name its customer: `invoices()->create()` needs `customer_name`, `customer_email` or both, or throws a `ValidationException` on `customer_name` and creates nothing. A name alone, such as the buyer's username, is enough, so one invoice per order is still a checkout where the buyer picks the coin; `$invoice->customerName` is null for an invoice given only an email, and `$invoice->customerEmail` for one given only a name. The README now shows it.

@@ -157,7 +157,6 @@ final class FakeWebhook
             'refunded_amount' => $type === 'charge.refunded' ? '0.000400000000000000' : '0',
             'exchange_rate' => '62500.000000000000000000',
             'deposit_address' => self::depositAddress($live),
-            'payment_request' => null,
             'transactions' => $transfer === null ? [] : [$transfer],
             'customer_email' => 'customer@example.com',
             'customer_name' => null,
