@@ -2,8 +2,9 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.9 - 2026-11-17
 
+- Requires `velirapay/velirapay-php` 0.6.13, for typed checkout questions: `paymentLinks()->create()` and `update()` take a `type` and its settings for each of up to ten `custom_fields`, `$link->customFields` reads them back, and every answer in `$charge->customFields`, in the API and in webhook events, carries its question's `type`, `"text"` for one given before types. `Asset::BTC_LIGHTNING`, `AddressNetwork::Lightning` and `$charge->paymentRequest` are gone with Bitcoin over Lightning.
 - Fake charges no longer carry `payment_request`, as VeliraPay no longer offers Bitcoin over Lightning and its charges no longer have it.
 
 ## 0.6.8 - 2026-11-15
