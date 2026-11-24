@@ -7,6 +7,7 @@ namespace VeliraPay\Laravel;
 use GuzzleHttp\Psr7\HttpFactory;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Foundation\CachesConfiguration;
 use Illuminate\Contracts\Foundation\CachesRoutes;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Contracts\Routing\UrlGenerator;
@@ -27,7 +28,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
     /**
      * The version of this package.
      */
-    public const VERSION = '0.6.9';
+    public const VERSION = '0.6.10';
 
     /**
      * Register the VeliraPay client.
@@ -35,6 +36,7 @@ final class VeliraPayServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/velirapay.php', 'velirapay');
+        $this->mergeWebhookDefaults();
 
         $this->app->scoped(VeliraPayClient::class, static function (Application $app): VeliraPayClient {
             $config = $app->make(Repository::class);
@@ -94,6 +96,24 @@ final class VeliraPayServiceProvider extends ServiceProvider
         $path = $this->app->make(Repository::class)->get('velirapay.webhook.path');
 
         return is_string($path) && trim($path, '/') !== '' ? trim($path, '/') : null;
+    }
+
+    /**
+     * Fill in the webhook settings a config file published before they existed lacks, which mergeConfigFrom() leaves out below the top level.
+     */
+    private function mergeWebhookDefaults(): void
+    {
+        if ($this->app instanceof CachesConfiguration && $this->app->configurationIsCached()) {
+            return;
+        }
+
+        $config = $this->app->make(Repository::class);
+        $defaults = require __DIR__.'/../config/velirapay.php';
+        $published = $config->get('velirapay.webhook');
+
+        $webhook = is_array($defaults) && is_array($defaults['webhook'] ?? null) ? $defaults['webhook'] : [];
+
+        $config->set('velirapay.webhook', array_merge($webhook, is_array($published) ? $published : []));
     }
 
     /**

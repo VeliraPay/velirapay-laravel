@@ -37,13 +37,16 @@ trait SendsVeliraPayWebhooks
             throw new LogicException('The VeliraPay webhook route is turned off: pass the URI of your own route to postVeliraPayWebhook().');
         }
 
-        $secret = VerifyWebhookSignature::secrets($config)[0] ?? null;
+        $delivery = FakeWebhook::payload($type, $object, $payload);
+
+        // Signed with a secret the delivery's mode is believed under: one for either mode, or its own mode's.
+        $secrets = VerifyWebhookSignature::secretsByMode($config);
+        $secret = $secrets['either'][0] ?? $secrets[$delivery['mode'] === 'live' ? 'live' : 'test'][0] ?? null;
 
         if ($secret === null) {
             $config->set('velirapay.webhook.secret', $secret = 'whsec_testing');
         }
 
-        $delivery = FakeWebhook::payload($type, $object, $payload);
         $body = json_encode($delivery, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         return $this->call('POST', $uri ?? '/'.$path, server: [

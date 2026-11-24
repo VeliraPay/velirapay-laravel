@@ -181,6 +181,7 @@ final class FakeWebhook
             'created_at' => $createdAt->toISOString(),
             'expires_at' => $createdAt->copy()->addMinutes(30)->toISOString(),
             'paid_at' => $status === 'paid' ? $now->toISOString() : null,
+            'accepted_at' => null,
         ];
     }
 
@@ -209,6 +210,7 @@ final class FakeWebhook
             'created_at' => $now->copy()->subMinutes(5)->toISOString(),
             'expires_at' => $now->copy()->addMinutes(25)->toISOString(),
             'paid_at' => $now->toISOString(),
+            'accepted_at' => null,
         ];
     }
 
@@ -313,7 +315,7 @@ final class FakeWebhook
             'success_url' => null,
             'cancel_url' => null,
             'success_message' => null,
-            'charges' => $status === 'paid' ? [['code' => Str::lower(Str::random(12)), 'status' => 'paid', 'asset' => 'BTC']] : [],
+            'charges' => $status === 'paid' ? [['code' => Str::lower(Str::random(12)), 'status' => 'paid', 'asset' => 'BTC', 'paid_at' => $now->toISOString(), 'accepted_at' => null]] : [],
             'sent_at' => in_array($type, ['invoice.sent', 'invoice.viewed', 'invoice.paid'], true) ? $now->copy()->subHour()->toISOString() : null,
             'viewed_at' => in_array($type, ['invoice.viewed', 'invoice.paid'], true) ? $now->copy()->subMinutes(10)->toISOString() : null,
             'paid_at' => $status === 'paid' ? $now->toISOString() : null,

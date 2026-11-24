@@ -90,6 +90,9 @@ $charge = VeliraPay::charges()->create([
     'cancel_url' => route('cart'),
 ], idempotencyKey: "order-{$order->id}-attempt-{$order->payment_attempts}");
 
+// The listener that fulfils the order only believes the charge saved here.
+$order->update(['velirapay_charge_id' => $charge->id]);
+
 return redirect()->away($charge->checkoutUrl ?? abort(502));
 ```
 
@@ -414,15 +417,18 @@ Then press **Verify** on the endpoint's page. VeliraPay sends the endpoint a sig
 
 The route sits outside the `web` middleware group, so CSRF protection does not get in the way. Every delivery's signature is checked against the secret; deliveries that fail get a 403 and never reach your code.
 
-Test and live mode have separate endpoints, each with its own secret. To send both to the same application, list both secrets, separated by a comma:
+Test and live mode have separate endpoints, each with its own secret. To send both to the same application, give each secret under its own mode instead:
 
 ```dotenv
-VELIRAPAY_WEBHOOK_SECRET=whsec_live...,whsec_test...
+VELIRAPAY_WEBHOOK_LIVE_SECRET=whsec_...
+VELIRAPAY_WEBHOOK_TEST_SECRET=whsec_...
 ```
+
+A delivery is then believed only about the mode whose secret signed it: one that says it is live but was signed with the test secret gets a 403. That matters because a test secret is often shared with a staging site or a developer, and must not be able to announce a live payment. Secrets listed in `VELIRAPAY_WEBHOOK_SECRET`, separated by commas, sign for either mode, so keep that for an application that hears from one endpoint.
 
 The application then hears about test payments as well, so compare `$event->webhook->isLiveMode()` with your key's mode in your listeners, as below: a test delivery must never fulfil a live order.
 
-Rotating the secret in the dashboard signs deliveries and their retries with the new secret from then on. For a day they also carry a signature made with the old one, so they keep passing the check while `VELIRAPAY_WEBHOOK_SECRET` still holds it. Replace the old secret there within that day, keeping any other secrets listed.
+Rotating the secret in the dashboard signs deliveries and their retries with the new secret from then on. For a day they also carry a signature made with the old one, so they keep passing the check while `VELIRAPAY_WEBHOOK_SECRET` still holds it. Replace the old secret there within that day, keeping any other secrets listed; `VELIRAPAY_WEBHOOK_LIVE_SECRET` and `VELIRAPAY_WEBHOOK_TEST_SECRET` take several the same way.
 
 ### Listening for events
 
@@ -474,10 +480,30 @@ class FulfilOrder implements ShouldQueue
             return;
         }
 
-        $order->markAsPaid($event->charge->id);
+        // Read as it is now: a delivery can be a retry, stored before the charge changed or before VeliraPay sent a field.
+        $charge = VeliraPay::charges()->retrieve($event->charge->id);
+
+        // The charge has to be the one made for the order, paid, for the order's price in its currency.
+        if ($order->velirapay_charge_id !== $charge->id
+            || ! $charge->isPaid()
+            || $charge->fiatCurrency !== $order->currency
+            || bccomp(bcadd($charge->fiatAmount, $charge->discountAmount ?? '0', 2), $order->total, 2) !== 0) {
+            return;
+        }
+
+        // You accepted a short or late payment as paid in the dashboard, perhaps only to refund it: a person decides.
+        if ($charge->acceptedAt !== null) {
+            $order->holdForReview($charge->id);
+
+            return;
+        }
+
+        $order->markAsPaid($charge->id);
     }
 }
 ```
+
+Save the charge's id on the order when you create the charge (`velirapay_charge_id` above), so a charge someone else made with your order's number in its metadata fulfils nothing. The listener reads the charge again because a delivery carries the charge as it was when the delivery was first made: a retry of one made before 2026-11-24 has no `acceptedAt` at all.
 
 Some things to know:
 
@@ -549,6 +575,7 @@ Http::assertSent(fn ($request) => $request['currency'] === 'EUR');
 The `SendsVeliraPayWebhooks` trait posts signed deliveries to your application, shaped like the ones VeliraPay sends:
 
 ```php
+use Illuminate\Support\Facades\Http;
 use VeliraPay\Enums\EventType;
 use VeliraPay\Laravel\Testing\SendsVeliraPayWebhooks;
 
@@ -558,9 +585,17 @@ class CheckoutTest extends TestCase
 
     public function test_a_paid_charge_fulfils_the_order(): void
     {
-        $order = Order::factory()->create();
+        $order = Order::factory()->create(['total' => '25.00', 'currency' => 'USD', 'velirapay_charge_id' => 'k3v9x2m7q8wz']);
+
+        // The listener reads the charge again, so the API answers with it as it is now.
+        Http::fake([
+            'api.velirapay.com/v1/charges/k3v9x2m7q8wz' => Http::response(['data' => [
+                'id' => 'k3v9x2m7q8wz', 'status' => 'paid', 'fiat_amount' => '25.00', 'fiat_currency' => 'USD', 'accepted_at' => null,
+            ]]),
+        ]);
 
         $this->postVeliraPayWebhook(EventType::ChargePaid, [
+            'code' => 'k3v9x2m7q8wz',
             'metadata' => ['order_id' => (string) $order->id],
         ])->assertOk();
 
@@ -568,6 +603,8 @@ class CheckoutTest extends TestCase
     }
 }
 ```
+
+The delivery's charge is given the id saved on the order (`code`, which is what a delivery calls it), and the API is faked to answer for that id, since the listener above fulfils from what the API says and not from the delivery. Answer with `'accepted_at' => now()->toISOString()` to test that a payment you accepted is held for review rather than fulfilled.
 
 Deliveries are in test mode unless you pass `['mode' => 'live']`, so a listener that compares their mode with your key's, as the one above does, needs a test key in your tests, such as `<env name="VELIRAPAY_API_KEY" value="vp_test_testing"/>` in `phpunit.xml`.
 
@@ -581,17 +618,21 @@ To test a listener on its own, build a delivery with `FakeWebhook`:
 use VeliraPay\Laravel\Events\ChargePaid;
 use VeliraPay\Laravel\Testing\FakeWebhook;
 
-$webhook = FakeWebhook::event('charge.paid', ['metadata' => ['order_id' => '42']]);
+$webhook = FakeWebhook::event('charge.paid', ['code' => 'k3v9x2m7q8wz', 'metadata' => ['order_id' => '42']]);
 
 (new FulfilOrder)->handle(new ChargePaid($webhook, $webhook->charge));
 ```
+
+A listener that reads the charge again needs the same `Http::fake()` answer here.
 
 ## Configuration
 
 | `.env` variable | Default | |
 | --- | --- | --- |
 | `VELIRAPAY_API_KEY` | | Your secret API key. |
-| `VELIRAPAY_WEBHOOK_SECRET` | | Your endpoint's signing secret, or several separated by commas. |
+| `VELIRAPAY_WEBHOOK_SECRET` | | Your endpoint's signing secret, or several separated by commas, each believed about either mode. |
+| `VELIRAPAY_WEBHOOK_LIVE_SECRET` | | The live endpoint's signing secret, believed about live deliveries alone. |
+| `VELIRAPAY_WEBHOOK_TEST_SECRET` | | The test endpoint's signing secret, believed about test deliveries alone. |
 | `VELIRAPAY_WEBHOOK_PATH` | `velirapay/webhook` | Where the webhook route listens; empty to register it yourself. |
 | `VELIRAPAY_WEBHOOK_TOLERANCE` | `300` | How many seconds old a signature may be. Only an explicit `0` turns the check off; a blank value keeps the default. |
 | `VELIRAPAY_TIMEOUT` | `30` | How many seconds an API request may take. A blank value, `0` or less keeps the default. |

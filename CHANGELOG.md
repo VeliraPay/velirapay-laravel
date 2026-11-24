@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.10 - 2026-11-24
+
+- `VELIRAPAY_WEBHOOK_LIVE_SECRET` and `VELIRAPAY_WEBHOOK_TEST_SECRET` (`velirapay.webhook.live_secret`, `test_secret`): a secret given for one mode is believed only about deliveries of that mode, so a test secret, which is often shared with a staging site or a developer, cannot announce a live payment; such a delivery gets a 403. Secrets in `VELIRAPAY_WEBHOOK_SECRET` go on signing for either mode, so nothing changes until you move them. The README now recommends the two new settings for an application that hears from both endpoints.
+- Requires `velirapay/velirapay-php` 0.6.15, for `$event->charge->acceptedAt` and `paid_at` and `accepted_at` on each of `$event->invoice->charges`: when you accepted a short or late payment as paid. The README's listener checks the charge against the order and holds an accepted payment for a person to decide. Fake charges and invoices carry the new fields, null.
+- `postVeliraPayWebhook()` signs with a secret its delivery's mode is believed under.
+- A `config/velirapay.php` published before these settings existed still reads them from the environment: the package fills in the webhook settings such a file lacks. Secrets kept in the one `VELIRAPAY_WEBHOOK_SECRET` list go on being believed about either mode until you move them, and one that is also given a mode of its own is believed about that mode alone.
+
 ## 0.6.9 - 2026-11-17
 
 - Requires `velirapay/velirapay-php` 0.6.13, for typed checkout questions: `paymentLinks()->create()` and `update()` take a `type` and its settings for each of up to ten `custom_fields`, `$link->customFields` reads them back, and every answer in `$charge->customFields`, in the API and in webhook events, carries its question's `type`, `"text"` for one given before types. `Asset::BTC_LIGHTNING`, `AddressNetwork::Lightning` and `$charge->paymentRequest` are gone with Bitcoin over Lightning.

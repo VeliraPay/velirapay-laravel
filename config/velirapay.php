@@ -20,15 +20,20 @@ return [
     |--------------------------------------------------------------------------
     |
     | The signing secret of your endpoint, under Developers > Webhooks, with
-    | several separated by commas, and the path VeliraPay posts to. A null
-    | path leaves the route for you to register. The tolerance is how many
-    | seconds old a signature may be: 0 turns that check off, and a blank
-    | value keeps the default.
+    | several separated by commas, and the path VeliraPay posts to. When
+    | one application hears from both a live and a test endpoint, give
+    | each secret under its own mode instead: a delivery is then believed
+    | only about the mode whose secret signed it. A null path leaves the
+    | route for you to register. The tolerance is how many seconds old a
+    | signature may be: 0 turns that check off, and a blank value keeps
+    | the default.
     |
     */
 
     'webhook' => [
         'secret' => env('VELIRAPAY_WEBHOOK_SECRET'),
+        'live_secret' => env('VELIRAPAY_WEBHOOK_LIVE_SECRET'),
+        'test_secret' => env('VELIRAPAY_WEBHOOK_TEST_SECRET'),
         'path' => env('VELIRAPAY_WEBHOOK_PATH', 'velirapay/webhook'),
         'tolerance' => env('VELIRAPAY_WEBHOOK_TOLERANCE', 300),
     ],

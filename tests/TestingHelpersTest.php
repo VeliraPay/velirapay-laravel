@@ -7,6 +7,7 @@ namespace VeliraPay\Laravel\Tests;
 use DateTimeImmutable;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use LogicException;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
@@ -17,9 +18,11 @@ use VeliraPay\Enums\Mode;
 use VeliraPay\Laravel\Events\ChargePaid;
 use VeliraPay\Laravel\Events\InvoiceVoided;
 use VeliraPay\Laravel\Events\WebhookReceived;
+use VeliraPay\Laravel\Facades\VeliraPay;
 use VeliraPay\Laravel\Http\Controllers\WebhookController;
 use VeliraPay\Laravel\Testing\FakeWebhook;
 use VeliraPay\Laravel\Testing\SendsVeliraPayWebhooks;
+use VeliraPay\Resources\Charge;
 use VeliraPay\Webhooks\Webhook;
 use VeliraPay\Webhooks\WebhookEvent;
 
@@ -36,6 +39,31 @@ final class TestingHelpersTest extends TestCase
         Event::assertDispatched(ChargePaid::class, fn (ChargePaid $event): bool => $event->charge->isPaid()
             && $event->charge->metadata === ['order_id' => '42']
             && $event->charge->receivedAmount === $event->charge->assetAmount);
+    }
+
+    /**
+     * A listener that reads the delivered charge again, as the README's does, is tested by naming the charge and faking the API's answer for it.
+     */
+    public function test_a_listener_can_read_the_delivered_charge_again_from_a_faked_api(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake([
+            'api.velirapay.com/v1/charges/k3v9x2m7q8wz' => Http::response(['data' => [
+                'id' => 'k3v9x2m7q8wz', 'status' => 'paid', 'fiat_amount' => '25.00', 'fiat_currency' => 'USD', 'accepted_at' => '2026-11-24T10:00:00.000000Z',
+            ]]),
+        ]);
+        $current = null;
+        Event::listen(function (ChargePaid $event) use (&$current): void {
+            $current = VeliraPay::charges()->retrieve($event->charge->id);
+        });
+
+        $this->postVeliraPayWebhook(EventType::ChargePaid, ['code' => 'k3v9x2m7q8wz', 'metadata' => ['order_id' => '42']])->assertOk();
+
+        $this->assertInstanceOf(Charge::class, $current);
+        $this->assertSame('k3v9x2m7q8wz', $current->id);
+        $this->assertTrue($current->isPaid());
+        $this->assertSame('25.00', $current->fiatAmount);
+        $this->assertNotNull($current->acceptedAt);
     }
 
     public function test_a_webhook_is_signed_even_without_a_configured_secret(): void
@@ -202,7 +230,7 @@ final class TestingHelpersTest extends TestCase
             'network_surcharge', 'processing_terms', 'switched_from', 'received_amount', 'remaining_amount', 'overpaid',
             'refunded_amount', 'exchange_rate', 'deposit_address', 'transactions', 'customer_email',
             'customer_name', 'customer', 'custom_fields', 'description', 'metadata', 'payment_link', 'invoice',
-            'created_at', 'expires_at', 'paid_at',
+            'created_at', 'expires_at', 'paid_at', 'accepted_at',
         ], array_keys($charge->toArray()));
         $this->assertNull($charge->get('network_surcharge'));
         $this->assertSame('1.75', $charge->processingTerms?->percent);

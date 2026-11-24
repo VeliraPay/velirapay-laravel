@@ -22,6 +22,7 @@ use VeliraPay\Laravel\Events\WebhookReceived;
 use VeliraPay\Laravel\Http\Controllers\WebhookController;
 use VeliraPay\Laravel\Http\Middleware\VerifyWebhookSignature;
 use VeliraPay\Laravel\Testing\FakeWebhook;
+use VeliraPay\Laravel\VeliraPayServiceProvider;
 use VeliraPay\Webhooks\Webhook;
 use VeliraPay\Webhooks\WebhookEvent;
 
@@ -126,6 +127,54 @@ final class WebhookTest extends TestCase
         $body = json_encode(FakeWebhook::payload('charge.paid'), JSON_THROW_ON_ERROR);
 
         $this->deliver($body, Webhook::signatureHeader($body, self::WEBHOOK_SECRET))->assertOk();
+    }
+
+    /**
+     * A test secret is handed around more freely than a live one, so it cannot vouch for a live payment.
+     */
+    public function test_a_secret_given_for_one_mode_is_not_believed_about_the_other(): void
+    {
+        config(['velirapay.webhook.secret' => null, 'velirapay.webhook.live_secret' => 'whsec_live', 'velirapay.webhook.test_secret' => 'whsec_test']);
+        Event::fake([WebhookReceived::class]);
+        $live = json_encode(FakeWebhook::payload('charge.paid', payload: ['mode' => 'live']), JSON_THROW_ON_ERROR);
+        $test = json_encode(FakeWebhook::payload('charge.paid', payload: ['mode' => 'test']), JSON_THROW_ON_ERROR);
+
+        $this->deliver($live, Webhook::signatureHeader($live, 'whsec_test'))->assertForbidden()->assertSee('other mode');
+        Event::assertNotDispatched(WebhookReceived::class);
+
+        $this->deliver($live, Webhook::signatureHeader($live, 'whsec_live'))->assertOk();
+        $this->deliver($test, Webhook::signatureHeader($test, 'whsec_test'))->assertOk();
+    }
+
+    /**
+     * A config file published before the per-mode secrets existed has no line for them, and must read them from the environment all the same.
+     */
+    /**
+     * A secret left in the older list after it was given a mode of its own is believed about that mode alone.
+     */
+    public function test_a_secret_given_a_mode_is_not_believed_about_the_other_through_the_older_list(): void
+    {
+        config(['velirapay.webhook.secret' => 'whsec_test,whsec_shared', 'velirapay.webhook.live_secret' => 'whsec_live', 'velirapay.webhook.test_secret' => 'whsec_test']);
+
+        $this->assertSame(['either' => ['whsec_shared'], 'live' => ['whsec_live'], 'test' => ['whsec_test']], VerifyWebhookSignature::secretsByMode(config()));
+    }
+
+    public function test_a_config_published_before_the_per_mode_secrets_still_reads_them(): void
+    {
+        config(['velirapay.webhook' => ['secret' => null, 'path' => 'velirapay/webhook', 'tolerance' => 300]]);
+        $_SERVER['VELIRAPAY_WEBHOOK_LIVE_SECRET'] = 'whsec_from_env';
+
+        try {
+            (new VeliraPayServiceProvider(app()))->register();
+        } finally {
+            unset($_SERVER['VELIRAPAY_WEBHOOK_LIVE_SECRET']);
+        }
+
+        $this->assertSame('whsec_from_env', config('velirapay.webhook.live_secret'));
+        $this->assertSame('velirapay/webhook', config('velirapay.webhook.path'));
+
+        $body = json_encode(FakeWebhook::payload('charge.paid', payload: ['mode' => 'live']), JSON_THROW_ON_ERROR);
+        $this->deliver($body, Webhook::signatureHeader($body, 'whsec_from_env'))->assertOk();
     }
 
     public function test_the_signature_age_limit_comes_from_the_config(): void
