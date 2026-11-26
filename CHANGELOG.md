@@ -2,6 +2,11 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- Fake invoices carry `subtotal`, `discount`, `discount_percent`, `tax` and each item's `tax_rate`, null, as VeliraPay delivers them for an invoice without tax or a discount.
+- With `velirapay/velirapay-php` 0.6.16, which `^0.6.15` installs, the facade reaches refund requests (`VeliraPay::charges()->startRefund()` and the methods that follow it) and invoices with tax and a discount.
+
 ## 0.6.10 - 2026-11-24
 
 - `VELIRAPAY_WEBHOOK_LIVE_SECRET` and `VELIRAPAY_WEBHOOK_TEST_SECRET` (`velirapay.webhook.live_secret`, `test_secret`): a secret given for one mode is believed only about deliveries of that mode, so a test secret, which is often shared with a staging site or a developer, cannot announce a live payment; such a delivery gets a 403. Secrets in `VELIRAPAY_WEBHOOK_SECRET` go on signing for either mode, so nothing changes until you move them. The README now recommends the two new settings for an application that hears from both endpoints.

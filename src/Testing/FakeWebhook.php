@@ -301,8 +301,12 @@ final class FakeWebhook
             'status' => $status,
             'amount' => '100.00',
             'currency' => 'USD',
+            'subtotal' => null,
+            'discount' => null,
+            'discount_percent' => null,
+            'tax' => null,
             'items' => [
-                ['description' => 'Services', 'quantity' => '1', 'unit_amount' => '100.00', 'total' => '100.00'],
+                ['description' => 'Services', 'quantity' => '1', 'unit_amount' => '100.00', 'tax_rate' => null, 'total' => '100.00'],
             ],
             'customer_name' => 'Customer',
             'customer_email' => 'customer@example.com',
