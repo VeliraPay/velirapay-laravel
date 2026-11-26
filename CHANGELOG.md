@@ -2,7 +2,7 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.11 - 2026-11-26
 
 - Fake invoices carry `subtotal`, `discount`, `discount_percent`, `tax` and each item's `tax_rate`, null, as VeliraPay delivers them for an invoice without tax or a discount.
 - With `velirapay/velirapay-php` 0.6.16, which `^0.6.15` installs, the facade reaches refund requests (`VeliraPay::charges()->startRefund()` and the methods that follow it) and invoices with tax and a discount.
