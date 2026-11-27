@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- Requires `velirapay/velirapay-php` 0.6.16, the first version with the refund request methods the facade is documented to reach (`VeliraPay::charges()->startRefund()` and the ones that follow it). `^0.6.15` let an installation stay on 0.6.15, where calling them fails.
+
 ## 0.6.11 - 2026-11-26
 
 - Fake invoices carry `subtotal`, `discount`, `discount_percent`, `tax` and each item's `tax_rate`, null, as VeliraPay delivers them for an invoice without tax or a discount.
