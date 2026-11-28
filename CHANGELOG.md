@@ -2,7 +2,7 @@
 
 All notable changes to this package are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.12 - 2026-11-28
 
 - Requires `velirapay/velirapay-php` 0.6.16, the first version with the refund request methods the facade is documented to reach (`VeliraPay::charges()->startRefund()` and the ones that follow it). `^0.6.15` let an installation stay on 0.6.15, where calling them fails.
 
